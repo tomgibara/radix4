@@ -72,7 +72,7 @@ public class Radix4CorrectnessTest extends TestCase {
 	}
 	
 	public void testWriteFailsAfterClose() throws IOException {
-		OutputStream out = Radix4.use().createStreamOutput(new ByteArrayOutputStream());
+		OutputStream out = Radix4.use().outputToStream(new ByteArrayOutputStream());
 		out.write(1);
 		out.close();
 		try {
@@ -122,7 +122,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		report("IN   ", bytesIn);
 		report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength());
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		OutputStream out = Radix4.use(policy).createStreamOutput(baos);
+		OutputStream out = Radix4.use(policy).outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		String suffix = "";
@@ -139,7 +139,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		String str = new String(bytesOut, ASCII);
 		report("STR  ", str.length(), " chars ", str);
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytesOut);
-		InputStream in = Radix4.use(policy).createStreamInput(bais);
+		InputStream in = Radix4.use(policy).inputFromStream(bais);
 		baos = new ByteArrayOutputStream();
 		transfer(in, baos);
 		byte[] bytesBack = baos.toByteArray();
@@ -163,7 +163,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		Radix4 radix4 = Radix4.use(policy);
 		
 		StringWriter writer = new StringWriter();
-		OutputStream out = radix4.createWriterOutput(writer);
+		OutputStream out = radix4.outputToWriter(writer);
 		out.write(bytesIn);
 		out.close();
 		writer.close();
@@ -174,7 +174,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		report("STR2 ", str2);
 		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		out = radix4.createStreamOutput(baos);
+		out = radix4.outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		baos.close();

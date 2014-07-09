@@ -139,8 +139,7 @@ public final class Radix4 {
 	 * @return an output stream to which binary data may be written for encoding
 	 */
 	
-	//TODO rename outputToStream
-	public OutputStream createStreamOutput(OutputStream out) {
+	public OutputStream outputToStream(OutputStream out) {
 		if (out == null) throw new IllegalArgumentException("null out");
 		return new Radix4OutputStream.ByteStream(policy, out);
 	}
@@ -154,8 +153,7 @@ public final class Radix4 {
 	 * @return an output stream to which binary data may be written for encoding
 	 */
 	
-	//TODO rename outputToWriter
-	public OutputStream createWriterOutput(Writer writer) {
+	public OutputStream outputToWriter(Writer writer) {
 		if (writer == null) throw new IllegalArgumentException("null writer");
 		return new Radix4OutputStream.CharStream(policy, writer);
 	}
@@ -169,8 +167,7 @@ public final class Radix4 {
 	 * @return an output stream to which binary data may be written for encoding
 	 */
 	
-	//TODO rename outputToBuilder
-	public OutputStream createStringOutput(StringBuilder builder) {
+	public OutputStream outputToBuilder(StringBuilder builder) {
 		if (builder == null) throw new IllegalArgumentException("null builder");
 		return new Radix4OutputStream.Chars(policy, builder);
 	}
@@ -185,8 +182,7 @@ public final class Radix4 {
 	 * @return an input stream from which the decoded binary data can be read
 	 */
 	
-	//TODO rename inputFromStream
-	public InputStream createStreamInput(InputStream in) {
+	public InputStream inputFromStream(InputStream in) {
 		if (in == null) throw new IllegalArgumentException("null in");
 		return new Radix4InputStream.ByteStream(in);
 	}
@@ -201,8 +197,7 @@ public final class Radix4 {
 	 * @return an input stream from which the decoded binary data can be read
 	 */
 	
-	//TODO rename inputFromReader
-	public InputStream createReaderInput(Reader reader) {
+	public InputStream inputFromReader(Reader reader) {
 		if (reader == null) throw new IllegalArgumentException("null reader");
 		return new Radix4InputStream.CharStream(reader);
 	}
@@ -218,8 +213,7 @@ public final class Radix4 {
 	 * @return an input stream from which the decoded binary data can be read
 	 */
 	
-	//TODO rename inputFromChars
-	public InputStream createStringInput(CharSequence chars) {
+	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		return new Radix4InputStream.Chars(chars);
 	}
@@ -229,18 +223,17 @@ public final class Radix4 {
 	 * number of bytes. The character count includes the terminating sequence if
 	 * one is specified by the policy.
 	 * 
-	 * @param length
+	 * @param byteLength
 	 *            the number of bytes to be encoded
 	 * @return the number characters required to Radix4 encode the specified
 	 *         number of bytes
 	 */
 
-	//TODO rename length to byteLength
-	public long computeEncodedLength(long length) {
-		long encodedLength = length / 3 * 4;
+	public long computeEncodedLength(long byteLength) {
+		long encodedLength = byteLength / 3 * 4;
 
 		// adjust for remainder
-		switch ((int)(length % 3)) {
+		switch ((int)(byteLength % 3)) {
 		case 1 : encodedLength += 2; break;
 		case 2 : encodedLength += 3; break;
 		}
