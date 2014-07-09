@@ -50,6 +50,10 @@ public class Radix4CompressionTest extends TestCase {
 	private void testCompression(String name) throws IOException {
 		report(name);
 		InputStream in = getClass().getClassLoader().getResourceAsStream(name);
+		if (in == null) {
+			report("NO RESOURCE STREAM");
+			return;
+		}
 		byte[] bytes = readAsBytes(in);
 		report("ORIGINAL LENGTH: " + bytes.length);
 		byte[] gzipped = gzip(bytes);
