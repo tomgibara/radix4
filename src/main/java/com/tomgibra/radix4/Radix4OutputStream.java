@@ -45,7 +45,7 @@ abstract class Radix4OutputStream extends OutputStream {
 	@Override
 	public void write(int b) throws IOException {
 		// map the byte
-		b = Radix4.encmap[b & 0xff] & 0xff;
+		b = Radix4.encmap[b & 0xff];
 		// watch for close
 		if (index == 3) throw new IOException("stream closed");
 		// make room for radices
