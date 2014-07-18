@@ -55,7 +55,8 @@ abstract class Radix4InputStream extends InputStream {
 		}
 		int b = bs[i];
 		if (++i == 3) i = 0;
-		return b;
+		// unmap the byte
+		return Radix4.decmap[b] & 0xff;
 	}
 
 	abstract int readChar() throws IOException;
