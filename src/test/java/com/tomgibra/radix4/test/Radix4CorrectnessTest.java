@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 import com.tomgibra.radix4.Radix4;
 import com.tomgibra.radix4.Radix4Policy;
+import com.tomgibra.radix4.Radix4Streams;
 
 
 import junit.framework.TestCase;
@@ -59,8 +60,8 @@ public class Radix4CorrectnessTest extends TestCase {
 	private Random rand = new Random(0L);
 	
 	public void testSimple() {	
-		report(Radix4.use().encodeToString("Hello World!".getBytes()));
-		report(Radix4.blockEncodeToString("Hello World!".getBytes()));
+		report(Radix4.useStreams().encodeToString("Hello World!".getBytes()));
+		report(Radix4.useBlocks().encodeToString("Hello World!".getBytes()));
 	}
 
 	public void testNoTrailingLineBreaks() {
@@ -68,12 +69,12 @@ public class Radix4CorrectnessTest extends TestCase {
 		rand.nextBytes(bytes);
 		Radix4Policy policy = new Radix4Policy();
 		policy.setLineLength(10);
-		String str = Radix4.use(policy).encodeToString(bytes);
+		String str = Radix4.useStreams(policy).encodeToString(bytes);
 		assertEquals("superflous line breaks", str.trim(), str);
 	}
 	
 	public void testWriteFailsAfterClose() throws IOException {
-		OutputStream out = Radix4.use().outputToStream(new ByteArrayOutputStream());
+		OutputStream out = Radix4.useStreams().outputToStream(new ByteArrayOutputStream());
 		out.write(1);
 		out.close();
 		try {
@@ -127,15 +128,15 @@ public class Radix4CorrectnessTest extends TestCase {
 			report("TEST " + i);
 			byte[] bytes = tests.next();
 			report("IN  ", bytes);
-			String str = Radix4.blockEncodeToString(bytes);
+			String str = Radix4.useBlocks().encodeToString(bytes);
 			report("STR ENC  ", str);
-			byte[] bs = Radix4.blockEncodeToBytes(bytes);
+			byte[] bs = Radix4.useBlocks().blockEncodeToBytes(bytes);
 			report("BYTE ENC  ", bs);
 			assertEquals(str, new String(bs, "ASCII"));
-			byte[] decStr = Radix4.blockDecodeToBytes(str);
+			byte[] decStr = Radix4.useBlocks().decodeToBytes(str);
 			report("STR DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decStr));
-			byte[] decBs = Radix4.blockDecodeToBytes(bs);
+			byte[] decBs = Radix4.useBlocks().decodeToBytes(bs);
 			report("BYTE DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decBs));
 		}
@@ -145,7 +146,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		report("IN   ", bytesIn);
 		report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength());
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		OutputStream out = Radix4.use(policy).outputToStream(baos);
+		OutputStream out = Radix4.useStreams(policy).outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		String suffix = "";
@@ -162,7 +163,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		String str = new String(bytesOut, ASCII);
 		report("STR  ", str.length(), " chars ", str);
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytesOut);
-		InputStream in = Radix4.use(policy).inputFromStream(bais);
+		InputStream in = Radix4.useStreams(policy).inputFromStream(bais);
 		baos = new ByteArrayOutputStream();
 		transfer(in, baos);
 		byte[] bytesBack = baos.toByteArray();
@@ -177,27 +178,27 @@ public class Radix4CorrectnessTest extends TestCase {
 		// check length is as expected
 		int length = bytesIn.length;
 		// adjust for suffix
-		long expectedLength = Radix4.use(policy).computeEncodedLength(length) + suffix.length();
+		long expectedLength = Radix4.useStreams(policy).computeEncodedLength(length) + suffix.length();
 		assertEquals("Incorrect output length", expectedLength, bytesOut.length);
 	}
 
 	private void testChars(byte[] bytesIn, Radix4Policy policy) throws IOException {
 		report("IN   ", bytesIn);
-		Radix4 radix4 = Radix4.use(policy);
+		Radix4Streams streams = Radix4.useStreams(policy);
 		
 		StringWriter writer = new StringWriter();
-		OutputStream out = radix4.outputToWriter(writer);
+		OutputStream out = streams.outputToWriter(writer);
 		out.write(bytesIn);
 		out.close();
 		writer.close();
 		String str1 = writer.toString();
 		report("STR1 ", str1);
 
-		String str2 = radix4.encodeToString(bytesIn);
+		String str2 = streams.encodeToString(bytesIn);
 		report("STR2 ", str2);
 		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		out = radix4.outputToStream(baos);
+		out = streams.outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		baos.close();

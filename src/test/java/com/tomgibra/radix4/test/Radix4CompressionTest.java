@@ -58,11 +58,11 @@ public class Radix4CompressionTest extends TestCase {
 		report("ORIGINAL LENGTH: " + bytes.length);
 		byte[] gzipped = gzip(bytes);
 		report("GZIPPED LENGTH: " + gzipped.length);
-		byte[] encoded = Radix4.use().encodeToBytes(bytes);
+		byte[] encoded = Radix4.useStreams().encodeToBytes(bytes);
 		report("ENCODED LENGTH: " + encoded.length);
 		byte[] gzipenc = gzip(encoded);
 		report("GZIPENC LENGTH: " + gzipenc.length + " *");
-		byte[] encgzip = Radix4.use().encodeToBytes(gzipped);
+		byte[] encgzip = Radix4.useStreams().encodeToBytes(gzipped);
 		report("ENCGZIP LENGTH: " + encgzip.length);
 		byte[] base64 = DatatypeConverter.printBase64Binary(bytes).getBytes();
 		report("BASE64 LENGTH: " + base64.length);

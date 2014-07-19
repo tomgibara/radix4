@@ -16,21 +16,12 @@
  */
 package com.tomgibra.radix4;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
 /**
- * Provides binary-to-text and text-to-binary functions. It is the entry-point
- * for accessing the functions provided by this package. Instances of this class
- * are safe for concurrent use by multiple threads.
+ * It is the entry-point for accessing the functions provided by this package.
+ * Instances of this class are safe for concurrent use by multiple threads.
  * 
  * Unless otherwise indicated, passing a null parameter to any method of this
  * class will raise an {@link IllegalArgumentException}.
@@ -91,7 +82,7 @@ public final class Radix4 {
 	
 	static final char[] whitespace = { '\r', '\n', '\t', ' ' };
 	
-	private static final byte[] bytes = new byte[256];
+	static final byte[] bytes = new byte[256];
 	
 	static {
 		Arrays.fill(bytes, (byte) -1);
@@ -114,383 +105,50 @@ public final class Radix4 {
 	static boolean isTerminator(char c) {
 		return c < 256 && bytes[c] == -1;
 	}
-	
-	private static boolean isRadixFree(byte[] bytes) {
-		for (int i = 0; i < bytes.length; i++) {
-			//TODO could optimize with a separate table?
-			if ((Radix4.encmap[bytes[i] & 0xff] & 0xc0) != 0) return false;
-		}
-		return true;
-	}
 
-	private static final Radix4 instance = new Radix4(Radix4Policy.DEFAULT);
+	static boolean isFixedByte(byte b) {
+		//TODO could optimize with a separate table?
+		return (encmap[b & 0xff] & 0xc0) == 0;
+	}
+	
+	private static final Radix4Streams streams = new Radix4Streams(Radix4Policy.DEFAULT);
+	private static final Radix4Blocks blocks = new Radix4Blocks();
 
 	/**
-	 * Obtain an instance which uses the default policy.
+	 * Obtain an object that can process Radix4 encoded streams according to the
+	 * default policy. The policy controls the operating parameters of the
+	 * encoding/decoding.
 	 * 
-	 * @return a Radix4 instance
+	 * @return a {@link Radix4Streams} instance
 	 * @see Radix4Policy#DEFAULT
 	 */
 	
-	public static Radix4 use() {
-		return instance;
+	public static Radix4Streams useStreams() {
+		return streams;
 	}
 	
 	/**
-	 * Obtain an instance which uses the supplied policy. The policy may be used
-	 * control the operating parameters of the encoding/decoding.
+	 * Obtain an object that can process Radix4 encoded streams according to the
+	 * supplied policy. The policy controls the operating parameters of the
+	 * encoding/decoding.
 	 * 
-	 * @return a Radix4 instance
+	 * @return a {@link Radix4Streams} instance which uses the supplied policy
 	 * @see Radix4Policy
 	 */
-	
-	public static Radix4 use(Radix4Policy policy) {
+
+	public static Radix4Streams useStreams(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
-		return policy == Radix4Policy.DEFAULT ? instance : new Radix4(policy.immutableCopy());
-	}
-
-	public static byte[] blockEncodeToBytes(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		if (isRadixFree(bytes)) return bytes.clone();
-		int length = bytes.length;
-		byte[] out = new byte[ length + 1 + (length + 2) / 3 ];
-		int index = 0;
-		int offset = length;
-		int radix = 0;
-		for (int i = 0; i < length; i++) {
-			int b = encmap[bytes[i] & 0xff];
-			out[i] = chars[ b & 0x3f ];
-			radix |= (b & 0xc0) >> ((++index) << 1);
-			if (index == 3) {
-				out[++offset] = chars[ radix ];
-				index = 0;
-				radix = 0;
-			}
-		}
-		out[length] = '.';
-		if (index != 0) out[++offset] = chars[ radix ];
-		return out;
-	}
-
-	public static String blockEncodeToString(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		if (isRadixFree(bytes)) return new String(bytes, ASCII);
-		int length = bytes.length;
-		StringBuilder sb = new StringBuilder(length + 1 + (length + 2) / 3);
-		sb.setLength(length);
-		sb.append('.');
-		int index = 0;
-		int radix = 0;
-		for (int i = 0; i < length; i++) {
-			int b = encmap[bytes[i] & 0xff];
-			sb.setCharAt(i, (char) (chars[ b & 0x3f ] & 0xff));
-			radix |= (b & 0xc0) >> ((++index) << 1);
-			if (index == 3) {
-				sb.append((char) (chars[ radix ] & 0xff));
-				index = 0;
-				radix = 0;
-			}
-		}
-		if (index != 0) sb.append((char) chars[ radix ]);
-		return sb.toString();
-	}
-
-	public static byte[] blockDecodeToBytes(String string) {
-		int length = string.length();
-		for (int i = 0; i < length; i++) {
-			char c = string.charAt(i);
-			if (c == '.') {
-				if (length != (i + 1 + (i + 2) / 3)) {
-					throw new IllegalArgumentException("misplaced '.' at index " + i);
-				}
-				return blockDecodeToBytes(string, i);
-			} else if (lookupByte(c) < 0) {
-				throw new IllegalArgumentException("invalid character at index " + i);
-			}
-		}
-		return string.getBytes(ASCII);
-	}
-
-	private static byte[] blockDecodeToBytes(String string, int len) {
-		byte[] out = new byte[len];
-		int index = 2;
-		int offset = len;
-		int radix = 0;
-		for (int i = 0; i < len; i++) {
-			if (++index == 3) {
-				radix = lookupByte(string.charAt(++offset));
-				if (radix < 0) throw new IllegalArgumentException("invalid character at index " + (offset - 1));
-				index = 0;
-			}
-			int b = bytes[ string.charAt(i) ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
-			out[i] = (byte) decmap[b];
-		}
-		return out;
-	}
-	
-	public static byte[] blockDecodeToBytes(byte[] bytes) {
-		int length = bytes.length;
-		for (int i = 0; i < length; i++) {
-			int b = bytes[i] & 0xff;
-			if (b == '.') {
-				if (length != (i + 1 + (i + 2) / 3)) {
-					throw new IllegalArgumentException("misplaced '.' at index " + i);
-				}
-				return blockDecodeToBytes(bytes, i);
-			} else if (lookupByte(b) < 0) {
-				throw new IllegalArgumentException("invalid character at index " + i);
-			}
-		}
-		return bytes.clone();
-	}
-
-	private static byte[] blockDecodeToBytes(byte[] bytes, int len) {
-		byte[] out = new byte[len];
-		int index = 2;
-		int offset = len;
-		int radix = 0;
-		for (int i = 0; i < len; i++) {
-			if (++index == 3) {
-				radix = lookupByte(bytes[++offset] & 0xff);
-				if (radix < 0) throw new IllegalArgumentException("invalid character at index " + (offset - 1));
-				index = 0;
-			}
-			int b = Radix4.bytes[ bytes[i] & 0xff ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
-			out[i] = (byte) decmap[b];
-		}
-		return out;
-	}
-	
-	private final Radix4Policy policy;
-	
-	private Radix4(Radix4Policy policy) {
-		this.policy = policy;
+		return policy == Radix4Policy.DEFAULT ? streams : new Radix4Streams(policy.immutableCopy());
 	}
 	
 	/**
-	 * The policy under which the Radix4 encoding and decoding are operating.
+	 * Obtain an object that can process Radix4 encoded blocks.
 	 * 
-	 * @return the policy, never null
-	 */
-	
-	public Radix4Policy getPolicy() {
-		return policy;
-	}
-
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * an {@link OutputStream} to which character data will be written.
-	 * 
-	 * @param out
-	 *            an output stream to which Radix4 encoded data should be
-	 *            written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
-	public OutputStream outputToStream(OutputStream out) {
-		if (out == null) throw new IllegalArgumentException("null out");
-		return new Radix4OutputStream.ByteStream(policy, out);
-	}
-	
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * a {@link Writer} to which character data will be written.
-	 * 
-	 * @param writer
-	 *            a writer to which Radix4 encoded data should be written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
-	public OutputStream outputToWriter(Writer writer) {
-		if (writer == null) throw new IllegalArgumentException("null writer");
-		return new Radix4OutputStream.CharStream(policy, writer);
-	}
-	
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * a {@link StringBuilder} to which character data will be appended.
-	 * 
-	 * @param writer
-	 *            a writer to which Radix4 encoded data should be written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
-	public OutputStream outputToBuilder(StringBuilder builder) {
-		if (builder == null) throw new IllegalArgumentException("null builder");
-		return new Radix4OutputStream.Chars(policy, builder);
-	}
-	
-	/**
-	 * Provides decoding from an {@link InputStream} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an input stream from which Radix4 encoded data may be read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
-	public InputStream inputFromStream(InputStream in) {
-		if (in == null) throw new IllegalArgumentException("null in");
-		return new Radix4InputStream.ByteStream(in);
-	}
-	
-	/**
-	 * Provides decoding from a {@link Reader} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an reader from which Radix4 encoded data may be read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
-	public InputStream inputFromReader(Reader reader) {
-		if (reader == null) throw new IllegalArgumentException("null reader");
-		return new Radix4InputStream.CharStream(reader);
-	}
-	
-	/**
-	 * Provides decoding from a {@link CharSequence} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an character sequence from which Radix4 encoded data may be
-	 *            read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
-	public InputStream inputFromChars(CharSequence chars) {
-		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new Radix4InputStream.Chars(chars);
-	}
-
-	/**
-	 * Computes the number of ASCII characters required to encode a specified
-	 * number of bytes. The character count includes the terminating sequence if
-	 * one is specified by the policy.
-	 * 
-	 * @param byteLength
-	 *            the number of bytes to be encoded
-	 * @return the number characters required to Radix4 encode the specified
-	 *         number of bytes
+	 * @return a {@link Radix4Blocks}
 	 */
 
-	public long computeEncodedLength(long byteLength) {
-		long encodedLength = byteLength / 3 * 4;
-
-		// adjust for remainder
-		switch ((int)(byteLength % 3)) {
-		case 1 : encodedLength += 2; break;
-		case 2 : encodedLength += 3; break;
-		}
-		
-		// adjust for termination
-		if (policy.terminated) encodedLength ++;
-		
-		// adjust for line breaks
-		int lineLength = policy.lineLength;
-		if (lineLength != Radix4Policy.NO_LINE_BREAK && encodedLength > 0) {
-			encodedLength += ((encodedLength - 1) / lineLength) * policy.lineBreakBytes.length;
-		}
-		
-		return encodedLength;
-	}
-	
-	/**
-	 * Encodes a byte array to a string using a Radix4 encoding.
-	 * 
-	 * @param bytes
-	 *            the bytes to encode
-	 * @return a string containing the encoded bytes
-	 */
-
-	public String encodeToString(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		StringBuilder builder = new StringBuilder();
-		try {
-			Radix4OutputStream out = new Radix4OutputStream.Chars(policy, builder);
-			out.write(bytes);
-			out.close();
-		} catch (IOException e) {
-			// this shouldn't be possible
-			throw new RuntimeException(e);
-		}
-		return builder.toString();
-	}
-	
-	/**
-	 * Encodes a byte array using a Radix4 encoding. The encoded data is
-	 * returned as a byte array of ASCII characters.
-	 * 
-	 * @param bytes
-	 *            the bytes to encode
-	 * @return encoding characters as bytes
-	 */
-
-	public byte[] encodeToBytes(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long encodedLength = computeEncodedLength(bytes.length);
-		if (encodedLength > Integer.MAX_VALUE) throw new IllegalArgumentException("bytes too long");
-		ByteArrayOutputStream baos = new ByteArrayOutputStream((int) (encodedLength));
-		try {
-			Radix4OutputStream out = new Radix4OutputStream.ByteStream(policy, baos);
-			out.write(bytes);
-			out.close();
-		} catch (IOException e) {
-			// this shouldn't be possible
-			throw new RuntimeException(e);
-		}
-		return baos.toByteArray();
+	public static Radix4Blocks useBlocks() {
+		return blocks;
 	}
 
-	/**
-	 * Decodes a {@link CharSequence} of Radix4 encoded binary data into a byte
-	 * array.
-	 * 
-	 * @param chars
-	 *            the Radix4 encoded data
-	 * @return the decoded data as a byte array
-	 */
-
-	public byte[] decodeToBytes(CharSequence chars) {
-		if (chars == null) throw new IllegalArgumentException("null chars");
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.Chars(chars);
-		transfer(in, out);
-		return out.toByteArray();
-	}
-	
-	/**
-	 * Decodes a byte array containing of Radix4 encoded data into a byte array.
-	 * 
-	 * @param bytes
-	 *            the Radix4 encoded data
-	 * @return the decoded data as a byte array
-	 */
-
-	public byte[] decodeToBytes(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.ByteStream(new ByteArrayInputStream(bytes));
-		transfer(in, out);
-		return out.toByteArray();
-	}
-
-	private void transfer(Radix4InputStream in, OutputStream out) {
-		try {
-			while (true) {
-				int r = in.read();
-				if (r < 0) break;
-				out.write(r);
-			}
-			out.close();
-			in.close();
-		} catch (IOException e) {
-			// this shouldn't be possible
-			throw new RuntimeException(e);
-		}
-	}
-	
 }
