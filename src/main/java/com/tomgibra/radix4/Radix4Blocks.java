@@ -46,7 +46,7 @@ public class Radix4Blocks {
 	Radix4Blocks() {
 	}
 	
-	public byte[] blockEncodeToBytes(byte[] bytes) {
+	public byte[] encodeToBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		if (isRadixFree(bytes)) return bytes.clone();
 		int length = bytes.length;

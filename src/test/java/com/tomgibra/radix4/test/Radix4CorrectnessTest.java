@@ -130,7 +130,7 @@ public class Radix4CorrectnessTest extends TestCase {
 			report("IN  ", bytes);
 			String str = Radix4.useBlocks().encodeToString(bytes);
 			report("STR ENC  ", str);
-			byte[] bs = Radix4.useBlocks().blockEncodeToBytes(bytes);
+			byte[] bs = Radix4.useBlocks().encodeToBytes(bytes);
 			report("BYTE ENC  ", bs);
 			assertEquals(str, new String(bs, "ASCII"));
 			byte[] decStr = Radix4.useBlocks().decodeToBytes(str);
