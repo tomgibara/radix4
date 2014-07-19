@@ -1,6 +1,33 @@
+/*
+ *   Copyright 2014 Tom Gibara
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ * 
+ */
 package com.tomgibra.radix4;
 
-public class Radix4Blocks {
+/**
+ * Provides methods for binary-to-text and text-to-binary using Radix4 encoding.
+ * Instances of this class are safe for concurrent use by multiple threads.
+ * 
+ * Unless otherwise indicated, passing a null parameter to any method of this
+ * class will raise an {@link IllegalArgumentException}.
+ * 
+ * @author tomgibara
+ * 
+ */
+
+public class Radix4Blocks implements Radix4Coding {
 
 	private static boolean isRadixFree(byte[] bytes) {
 		for (int i = 0; i < bytes.length; i++) {
@@ -9,18 +36,18 @@ public class Radix4Blocks {
 		return true;
 	}
 
-	private static byte[] decodeToBytes(String string, int len) {
+	private static byte[] decodeToBytes(CharSequence chars, int len) {
 		byte[] out = new byte[len];
 		int index = 2;
 		int offset = len;
 		int radix = 0;
 		for (int i = 0; i < len; i++) {
 			if (++index == 3) {
-				radix = Radix4.lookupByte(string.charAt(++offset));
+				radix = Radix4.lookupByte(chars.charAt(++offset));
 				if (radix < 0) throw new IllegalArgumentException("invalid character at index " + (offset - 1));
 				index = 0;
 			}
-			int b = Radix4.bytes[ string.charAt(i) ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
+			int b = Radix4.bytes[ chars.charAt(i) ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
 			out[i] = (byte) Radix4.decmap[b];
 		}
 		return out;
@@ -46,29 +73,7 @@ public class Radix4Blocks {
 	Radix4Blocks() {
 	}
 	
-	public byte[] encodeToBytes(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		if (isRadixFree(bytes)) return bytes.clone();
-		int length = bytes.length;
-		byte[] out = new byte[ length + 1 + (length + 2) / 3 ];
-		int index = 0;
-		int offset = length;
-		int radix = 0;
-		for (int i = 0; i < length; i++) {
-			int b = Radix4.encmap[bytes[i] & 0xff];
-			out[i] = Radix4.chars[ b & 0x3f ];
-			radix |= (b & 0xc0) >> ((++index) << 1);
-			if (index == 3) {
-				out[++offset] = Radix4.chars[ radix ];
-				index = 0;
-				radix = 0;
-			}
-		}
-		out[length] = '.';
-		if (index != 0) out[++offset] = Radix4.chars[ radix ];
-		return out;
-	}
-
+	@Override
 	public String encodeToString(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		if (isRadixFree(bytes)) return new String(bytes, Radix4.ASCII);
@@ -92,23 +97,51 @@ public class Radix4Blocks {
 		return sb.toString();
 	}
 
-	public byte[] decodeToBytes(String string) {
-		int length = string.length();
+	@Override
+	public byte[] encodeToBytes(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		if (isRadixFree(bytes)) return bytes.clone();
+		int length = bytes.length;
+		byte[] out = new byte[ length + 1 + (length + 2) / 3 ];
+		int index = 0;
+		int offset = length;
+		int radix = 0;
 		for (int i = 0; i < length; i++) {
-			char c = string.charAt(i);
+			int b = Radix4.encmap[bytes[i] & 0xff];
+			out[i] = Radix4.chars[ b & 0x3f ];
+			radix |= (b & 0xc0) >> ((++index) << 1);
+			if (index == 3) {
+				out[++offset] = Radix4.chars[ radix ];
+				index = 0;
+				radix = 0;
+			}
+		}
+		out[length] = '.';
+		if (index != 0) out[++offset] = Radix4.chars[ radix ];
+		return out;
+	}
+
+	@Override
+	public byte[] decodeToBytes(CharSequence chars) {
+		if (chars == null) throw new IllegalArgumentException("null chars");
+		int length = chars.length();
+		for (int i = 0; i < length; i++) {
+			char c = chars.charAt(i);
 			if (c == '.') {
 				if (length != (i + 1 + (i + 2) / 3)) {
 					throw new IllegalArgumentException("misplaced '.' at index " + i);
 				}
-				return decodeToBytes(string, i);
+				return decodeToBytes(chars, i);
 			} else if (Radix4.lookupByte(c) < 0) {
 				throw new IllegalArgumentException("invalid character at index " + i);
 			}
 		}
-		return string.getBytes(Radix4.ASCII);
+		return chars.toString().getBytes(Radix4.ASCII);
 	}
 
+	@Override
 	public byte[] decodeToBytes(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		int length = bytes.length;
 		for (int i = 0; i < length; i++) {
 			int b = bytes[i] & 0xff;

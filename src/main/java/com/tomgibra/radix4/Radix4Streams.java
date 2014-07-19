@@ -35,7 +35,7 @@ import java.io.Writer;
  * 
  */
 
-public class Radix4Streams {
+public class Radix4Streams implements Radix4Coding {
 
 	private final Radix4Policy policy;
 	
@@ -174,14 +174,7 @@ public class Radix4Streams {
 		return encodedLength;
 	}
 	
-	/**
-	 * Encodes a byte array to a string using a Radix4 encoding.
-	 * 
-	 * @param bytes
-	 *            the bytes to encode
-	 * @return a string containing the encoded bytes
-	 */
-
+	@Override
 	public String encodeToString(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		StringBuilder builder = new StringBuilder();
@@ -196,15 +189,7 @@ public class Radix4Streams {
 		return builder.toString();
 	}
 	
-	/**
-	 * Encodes a byte array using a Radix4 encoding. The encoded data is
-	 * returned as a byte array of ASCII characters.
-	 * 
-	 * @param bytes
-	 *            the bytes to encode
-	 * @return encoding characters as bytes
-	 */
-
+	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		long encodedLength = computeEncodedLength(bytes.length);
@@ -221,15 +206,7 @@ public class Radix4Streams {
 		return baos.toByteArray();
 	}
 
-	/**
-	 * Decodes a {@link CharSequence} of Radix4 encoded binary data into a byte
-	 * array.
-	 * 
-	 * @param chars
-	 *            the Radix4 encoded data
-	 * @return the decoded data as a byte array
-	 */
-
+	@Override
 	public byte[] decodeToBytes(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -238,14 +215,7 @@ public class Radix4Streams {
 		return out.toByteArray();
 	}
 	
-	/**
-	 * Decodes a byte array containing of Radix4 encoded data into a byte array.
-	 * 
-	 * @param bytes
-	 *            the Radix4 encoded data
-	 * @return the decoded data as a byte array
-	 */
-
+	@Override
 	public byte[] decodeToBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
