@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -102,7 +103,7 @@ public final class Radix4 {
 		}
 	}
 	
-	static int lookupByte(int c) throws IOException {
+	static int lookupByte(int c) {
 		return c >=0 && c < 256 ? bytes[c] : -1;
 	}
 	
@@ -114,6 +115,14 @@ public final class Radix4 {
 		return c < 256 && bytes[c] == -1;
 	}
 	
+	private static boolean isRadixFree(byte[] bytes) {
+		for (int i = 0; i < bytes.length; i++) {
+			//TODO could optimize with a separate table?
+			if ((Radix4.encmap[bytes[i] & 0xff] & 0xc0) != 0) return false;
+		}
+		return true;
+	}
+
 	private static final Radix4 instance = new Radix4(Radix4Policy.DEFAULT);
 
 	/**
@@ -138,6 +147,118 @@ public final class Radix4 {
 	public static Radix4 use(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
 		return policy == Radix4Policy.DEFAULT ? instance : new Radix4(policy.immutableCopy());
+	}
+
+	public static byte[] blockEncodeToBytes(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		if (isRadixFree(bytes)) return bytes.clone();
+		int length = bytes.length;
+		byte[] out = new byte[ length + 1 + (length + 2) / 3 ];
+		int index = 0;
+		int offset = length;
+		int radix = 0;
+		for (int i = 0; i < length; i++) {
+			int b = encmap[bytes[i] & 0xff];
+			out[i] = chars[ b & 0x3f ];
+			radix |= (b & 0xc0) >> ((++index) << 1);
+			if (index == 3) {
+				out[++offset] = chars[ radix ];
+				index = 0;
+				radix = 0;
+			}
+		}
+		out[length] = '.';
+		if (index != 0) out[++offset] = chars[ radix ];
+		return out;
+	}
+
+	public static String blockEncodeToString(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		if (isRadixFree(bytes)) return new String(bytes, ASCII);
+		int length = bytes.length;
+		StringBuilder sb = new StringBuilder(length + 1 + (length + 2) / 3);
+		sb.setLength(length);
+		sb.append('.');
+		int index = 0;
+		int radix = 0;
+		for (int i = 0; i < length; i++) {
+			int b = encmap[bytes[i] & 0xff];
+			sb.setCharAt(i, (char) (chars[ b & 0x3f ] & 0xff));
+			radix |= (b & 0xc0) >> ((++index) << 1);
+			if (index == 3) {
+				sb.append((char) (chars[ radix ] & 0xff));
+				index = 0;
+				radix = 0;
+			}
+		}
+		if (index != 0) sb.append((char) chars[ radix ]);
+		return sb.toString();
+	}
+
+	public static byte[] blockDecodeToBytes(String string) {
+		int length = string.length();
+		for (int i = 0; i < length; i++) {
+			char c = string.charAt(i);
+			if (c == '.') {
+				if (length != (i + 1 + (i + 2) / 3)) {
+					throw new IllegalArgumentException("misplaced '.' at index " + i);
+				}
+				return blockDecodeToBytes(string, i);
+			} else if (lookupByte(c) < 0) {
+				throw new IllegalArgumentException("invalid character at index " + i);
+			}
+		}
+		return string.getBytes(ASCII);
+	}
+
+	private static byte[] blockDecodeToBytes(String string, int len) {
+		byte[] out = new byte[len];
+		int index = 2;
+		int offset = len;
+		int radix = 0;
+		for (int i = 0; i < len; i++) {
+			if (++index == 3) {
+				radix = lookupByte(string.charAt(++offset));
+				if (radix < 0) throw new IllegalArgumentException("invalid character at index " + (offset - 1));
+				index = 0;
+			}
+			int b = bytes[ string.charAt(i) ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
+			out[i] = (byte) decmap[b];
+		}
+		return out;
+	}
+	
+	public static byte[] blockDecodeToBytes(byte[] bytes) {
+		int length = bytes.length;
+		for (int i = 0; i < length; i++) {
+			int b = bytes[i] & 0xff;
+			if (b == '.') {
+				if (length != (i + 1 + (i + 2) / 3)) {
+					throw new IllegalArgumentException("misplaced '.' at index " + i);
+				}
+				return blockDecodeToBytes(bytes, i);
+			} else if (lookupByte(b) < 0) {
+				throw new IllegalArgumentException("invalid character at index " + i);
+			}
+		}
+		return bytes.clone();
+	}
+
+	private static byte[] blockDecodeToBytes(byte[] bytes, int len) {
+		byte[] out = new byte[len];
+		int index = 2;
+		int offset = len;
+		int radix = 0;
+		for (int i = 0; i < len; i++) {
+			if (++index == 3) {
+				radix = lookupByte(bytes[++offset] & 0xff);
+				if (radix < 0) throw new IllegalArgumentException("invalid character at index " + (offset - 1));
+				index = 0;
+			}
+			int b = Radix4.bytes[ bytes[i] & 0xff ] & 0x3f | radix << ((index + 1) << 1) & 0xc0;
+			out[i] = (byte) decmap[b];
+		}
+		return out;
 	}
 	
 	private final Radix4Policy policy;

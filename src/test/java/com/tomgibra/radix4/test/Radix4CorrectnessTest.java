@@ -60,6 +60,7 @@ public class Radix4CorrectnessTest extends TestCase {
 	
 	public void testSimple() {	
 		report(Radix4.use().encodeToString("Hello World!".getBytes()));
+		report(Radix4.blockEncodeToString("Hello World!".getBytes()));
 	}
 
 	public void testNoTrailingLineBreaks() {
@@ -115,6 +116,28 @@ public class Radix4CorrectnessTest extends TestCase {
 		for (int i = 0; i < testCount; i++) {
 			report("TEST ", i);
 			testChars(tests.next(), Radix4Policy.DEFAULT);
+		}
+	}
+	
+	public void testBlock() throws IOException {
+		report("* BLOCK");
+		Iterator<byte[]> tests = new TestData(0L).iterator();
+		int testCount = TEST_COUNT;
+		for (int i = 0; i < testCount; i++) {
+			report("TEST " + i);
+			byte[] bytes = tests.next();
+			report("IN  ", bytes);
+			String str = Radix4.blockEncodeToString(bytes);
+			report("STR ENC  ", str);
+			byte[] bs = Radix4.blockEncodeToBytes(bytes);
+			report("BYTE ENC  ", bs);
+			assertEquals(str, new String(bs, "ASCII"));
+			byte[] decStr = Radix4.blockDecodeToBytes(str);
+			report("STR DEC  ", decStr);
+			assertTrue("byte processed result did not match", Arrays.equals(bytes, decStr));
+			byte[] decBs = Radix4.blockDecodeToBytes(bs);
+			report("BYTE DEC  ", decStr);
+			assertTrue("byte processed result did not match", Arrays.equals(bytes, decBs));
 		}
 	}
 	
