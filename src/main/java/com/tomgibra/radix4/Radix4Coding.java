@@ -31,7 +31,7 @@ public interface Radix4Coding {
 	 * @return the decoded data as a byte array
 	 */
 
-	byte[] decodeToBytes(CharSequence chars);
+	byte[] decodeFromString(CharSequence chars);
 	
 	/**
 	 * Decodes a byte array containing of Radix4 encoded data into a byte array.
@@ -41,5 +41,5 @@ public interface Radix4Coding {
 	 * @return the decoded data as a byte array
 	 */
 
-	byte[] decodeToBytes(byte[] bytes);
+	byte[] decodeFromBytes(byte[] bytes);
 }

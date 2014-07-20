@@ -133,10 +133,10 @@ public class Radix4CorrectnessTest extends TestCase {
 			byte[] bs = Radix4.useBlocks().encodeToBytes(bytes);
 			report("BYTE ENC  ", bs);
 			assertEquals(str, new String(bs, "ASCII"));
-			byte[] decStr = Radix4.useBlocks().decodeToBytes(str);
+			byte[] decStr = Radix4.useBlocks().decodeFromString(str);
 			report("STR DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decStr));
-			byte[] decBs = Radix4.useBlocks().decodeToBytes(bs);
+			byte[] decBs = Radix4.useBlocks().decodeFromBytes(bs);
 			report("BYTE DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decBs));
 		}

@@ -207,7 +207,7 @@ public class Radix4Streams implements Radix4Coding {
 	}
 
 	@Override
-	public byte[] decodeToBytes(CharSequence chars) {
+	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		Radix4InputStream in = new Radix4InputStream.Chars(chars);
@@ -216,7 +216,7 @@ public class Radix4Streams implements Radix4Coding {
 	}
 	
 	@Override
-	public byte[] decodeToBytes(byte[] bytes) {
+	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		Radix4InputStream in = new Radix4InputStream.ByteStream(new ByteArrayInputStream(bytes));

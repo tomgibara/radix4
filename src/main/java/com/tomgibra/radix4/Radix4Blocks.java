@@ -122,7 +122,7 @@ public class Radix4Blocks implements Radix4Coding {
 	}
 
 	@Override
-	public byte[] decodeToBytes(CharSequence chars) {
+	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		int length = chars.length();
 		for (int i = 0; i < length; i++) {
@@ -140,7 +140,7 @@ public class Radix4Blocks implements Radix4Coding {
 	}
 
 	@Override
-	public byte[] decodeToBytes(byte[] bytes) {
+	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		int length = bytes.length;
 		for (int i = 0; i < length; i++) {
