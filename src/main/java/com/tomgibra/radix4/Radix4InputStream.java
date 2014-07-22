@@ -24,29 +24,57 @@ import java.io.Reader;
 
 abstract class Radix4InputStream extends InputStream {
 
+	private final Radix4Policy policy;
+	private final int termChar;
+	private boolean radixFree;
 	private int i = 0;
 	private int j = 3;
 	private int[] bs = new int[3];
 	
+	Radix4InputStream(Radix4Policy policy) {
+		this.policy = policy;
+		termChar = policy.terminator;
+		radixFree = policy.optimistic;
+	}
+
 	@Override
 	public int read() throws IOException {
 		if (i == j) return -1;
+		if (radixFree) {
+			int b = lookupNonWS();
+			switch (b) {
+			case -1: // eos
+				if (policy.terminated) throw new IOException("unexpected end of stream");
+				j = 0;
+				break;
+			case -3: // terminator - end of radix free
+				radixFree = false;
+				break; // falling through to decoding
+				default: // just unmap and return
+					return Radix4.decmap[b];
+			}
+		}
 		if (i == 0) {
 			int radix = lookupNonWS();
-			if (radix == -1) {
+			if (radix < 0) {
+				// check for premature eos
+				if (radix == -1 && policy.terminated) throw new IOException("unexpected end of stream");
+				if (radix == -3 && !policy.terminated) throw new IOException("unexpected terminator");
 				j = 0;
 				return -1;
 			}
 			int b0 = lookupNonWS();
+			//TODO need to distinguish termination & eos
+			//TODO check for terminator too?
 			if (b0 == -1) throw new IOException("unexpected end of stream");
 			bs[0] = b0 | ((radix << 2) & 0xc0);
 			int b1 = lookupNonWS();
-			if (b1 == -1) {
+			if (b1 < 0) {
 				j = 1;
 			} else {
 				bs[1] = b1 | ((radix << 4) & 0xc0);
 				int b2 = lookupNonWS();
-				if (b2 == -1) {
+				if (b2 < 0) {
 					j = 2;
 				} else {
 					bs[2] = b2 | ((radix << 6) & 0xc0);
@@ -63,8 +91,13 @@ abstract class Radix4InputStream extends InputStream {
 	
 	private int lookupNonWS() throws IOException {
 		while (true) {
-			int b = lookupByte( readChar() );
-			if (b != -2) return b;
+			int c = readChar();
+			if (c == -1) return -1;
+			if (c == termChar) return -3;
+			int b = lookupByte(c);
+			if (b == -1) throw new IOException("invalid character");
+			if (b == -2) continue;
+			return b;
 		}
 	}
 	
@@ -72,7 +105,8 @@ abstract class Radix4InputStream extends InputStream {
 
 		private final InputStream in;
 
-		public ByteStream(InputStream in) {
+		public ByteStream(Radix4Policy policy, InputStream in) {
+			super(policy);
 			this.in = in;
 		}
 		
@@ -87,7 +121,8 @@ abstract class Radix4InputStream extends InputStream {
 
 		private final Reader reader;
 		
-		CharStream(Reader reader) {
+		CharStream(Radix4Policy policy, Reader reader) {
+			super(policy);
 			this.reader = reader;
 		}
 		
@@ -103,7 +138,8 @@ abstract class Radix4InputStream extends InputStream {
 		private final int length;
 		private int position;
 		
-		public Chars(CharSequence chars) {
+		public Chars(Radix4Policy policy, CharSequence chars) {
+			super(policy);
 			this.chars = chars;
 			length = chars.length();
 			position = 0;

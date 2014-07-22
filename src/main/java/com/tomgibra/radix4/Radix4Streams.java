@@ -108,7 +108,7 @@ public class Radix4Streams implements Radix4Coding {
 	
 	public InputStream inputFromStream(InputStream in) {
 		if (in == null) throw new IllegalArgumentException("null in");
-		return new Radix4InputStream.ByteStream(in);
+		return new Radix4InputStream.ByteStream(policy, in);
 	}
 	
 	/**
@@ -123,7 +123,7 @@ public class Radix4Streams implements Radix4Coding {
 	
 	public InputStream inputFromReader(Reader reader) {
 		if (reader == null) throw new IllegalArgumentException("null reader");
-		return new Radix4InputStream.CharStream(reader);
+		return new Radix4InputStream.CharStream(policy,reader);
 	}
 	
 	/**
@@ -139,7 +139,13 @@ public class Radix4Streams implements Radix4Coding {
 	
 	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new Radix4InputStream.Chars(chars);
+		return new Radix4InputStream.Chars(policy,chars);
+	}
+
+	public long computeEncodedLength(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		long radixFreeLength = policy.optimistic ? Radix4.computeRadixFreeLength(bytes) : 0L;
+		return computeEncodedLength(bytes.length, radixFreeLength);
 	}
 
 	/**
@@ -153,17 +159,27 @@ public class Radix4Streams implements Radix4Coding {
 	 *         number of bytes
 	 */
 
-	public long computeEncodedLength(long byteLength) {
-		long encodedLength = byteLength / 3 * 4;
+	public long computeEncodedLength(long byteLength, long radixFreeLength) {
+		if (byteLength < 0) throw new IllegalArgumentException("negative byteLength");
+		if (radixFreeLength < 0) throw new IllegalArgumentException("negative radixFreeLength");
+		if (radixFreeLength > byteLength) throw new IllegalArgumentException("radixFreeLength exceeds byteLength");
+		
+		if (!policy.optimistic) radixFreeLength = 0L;
+		// calculate length of radix encoded bytes
+		long radixedLength = byteLength - radixFreeLength;
+		long encodedLength = radixFreeLength + radixedLength / 3 * 4;
 
 		// adjust for remainder
-		switch ((int)(byteLength % 3)) {
+		switch ((int)(radixedLength % 3)) {
 		case 1 : encodedLength += 2; break;
 		case 2 : encodedLength += 3; break;
 		}
 		
 		// adjust for termination
 		if (policy.terminated) encodedLength ++;
+		
+		// adjust for optimism
+		if (policy.optimistic && (policy.terminated || radixFreeLength < byteLength)) encodedLength ++;
 		
 		// adjust for line breaks
 		int lineLength = policy.lineLength;
@@ -191,8 +207,7 @@ public class Radix4Streams implements Radix4Coding {
 	
 	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long encodedLength = computeEncodedLength(bytes.length);
+		long encodedLength = computeEncodedLength(bytes);
 		if (encodedLength > Integer.MAX_VALUE) throw new IllegalArgumentException("bytes too long");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream((int) (encodedLength));
 		try {
@@ -210,7 +225,7 @@ public class Radix4Streams implements Radix4Coding {
 	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.Chars(chars);
+		Radix4InputStream in = new Radix4InputStream.Chars(policy,chars);
 		transfer(in, out);
 		return out.toByteArray();
 	}
@@ -219,7 +234,7 @@ public class Radix4Streams implements Radix4Coding {
 	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.ByteStream(new ByteArrayInputStream(bytes));
+		Radix4InputStream in = new Radix4InputStream.ByteStream(policy,new ByteArrayInputStream(bytes));
 		transfer(in, out);
 		return out.toByteArray();
 	}

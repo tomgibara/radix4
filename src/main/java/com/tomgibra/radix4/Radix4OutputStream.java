@@ -33,6 +33,8 @@ abstract class Radix4OutputStream extends OutputStream {
 	private long count = 0;
 	// index within the triple: 0,1 or 2 -- rogue value of 3 when closed
 	private int index = 0;
+	// whether a byte with a non-zero radix has yet to be encountered
+	private boolean radixFree;
 	
 	Radix4OutputStream(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
@@ -40,24 +42,39 @@ abstract class Radix4OutputStream extends OutputStream {
 		// set bufferSize to a multiple of 4
 		// this way we avoid having to move remaining bytes around inside the buffer
 		this.bufferSize = (policy.getBufferSize() + 3) & 0xfffffffc;
+		this.radixFree = policy.optimistic;
 	}
 
 	@Override
 	public void write(int b) throws IOException {
-		// map the byte
-		b = Radix4.encmap[b & 0xff];
 		// watch for close
 		if (index == 3) throw new IOException("stream closed");
-		// make room for radices
-		if (index == 0) position++;
-		bufferByte(position++, Radix4.chars[ b & 0x3f ]);
-		// append to the radix and increment counter
-		radix |= (b & 0xc0) >> ((++index) << 1);
-		// store the radix when full and reset counter
-		if (index == 3) {
-			bufferByte(position - 4, Radix4.chars[ radix ]);
-			index = 0;
-			radix = 0;
+		// map the byte
+		b = Radix4.encmap[b & 0xff];
+		int c = b & 0x3f;
+		if (radixFree) {
+			if (c == b) {
+				// still radix free
+				bufferByte(position++, Radix4.chars[ c ]);
+			} else {
+				// no longer radix free
+				flushBufferWithTerm();
+				radixFree = false;
+			}
+		}
+		if (!radixFree) {
+			// make room for radices
+			if (index == 0) position++;
+			// check if still radix free
+			bufferByte(position++, Radix4.chars[ c ]);
+			// append to the radix and increment counter
+			radix |= (b & 0xc0) >> ((++index) << 1);
+			// store the radix when full and reset counter
+			if (index == 3) {
+				bufferByte(position - 4, Radix4.chars[ radix ]);
+				index = 0;
+				radix = 0;
+			}
 		}
 		// if the buffer's full, empty it
 		if (position == bufferSize) {
@@ -81,8 +98,15 @@ abstract class Radix4OutputStream extends OutputStream {
 		if (policy.terminated) {
 			// must be space in buffer here because write() never leaves it full
 			bufferByte(position++, policy.terminatorByte);
-			flushBuffer();
+			// if necessary, insert a second terminator to indicate end of radix free (ie. all) bytes
+			if (radixFree) {
+				flushBufferWithTerm();
+			} else {
+				flushBuffer();
+			}
+			// we don't close the underlying stream if termination is explicit
 		} else {
+			// for implicit termination we don't care about radix-free state
 			flushBuffer();
 			closeUnderlying();
 		}
@@ -90,6 +114,13 @@ abstract class Radix4OutputStream extends OutputStream {
 		index = 3;
 	}
 
+	private void flushBufferWithTerm() throws IOException {
+		// unlucky case - buffer is full, we need to flush twice
+		if (position == bufferSize) flushBuffer();
+		bufferByte(position++, policy.terminatorByte);
+		flushBuffer();
+	}
+	
 	// always called with index equal to zero; unless closing - in which case we don't care that radix may be flushed incomplete
 	private void flushBuffer() throws IOException {
 		if (position == 0) return;

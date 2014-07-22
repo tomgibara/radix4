@@ -29,13 +29,6 @@ package com.tomgibra.radix4;
 
 public class Radix4Blocks implements Radix4Coding {
 
-	private static boolean isRadixFree(byte[] bytes) {
-		for (int i = 0; i < bytes.length; i++) {
-			if (!Radix4.isFixedByte(bytes[i])) return false;
-		}
-		return true;
-	}
-
 	private static byte[] decodeToBytes(CharSequence chars, int len) {
 		byte[] out = new byte[len];
 		int index = 2;
@@ -76,7 +69,7 @@ public class Radix4Blocks implements Radix4Coding {
 	@Override
 	public String encodeToString(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		if (isRadixFree(bytes)) return new String(bytes, Radix4.ASCII);
+		if (Radix4.isRadixFree(bytes)) return new String(bytes, Radix4.ASCII);
 		int length = bytes.length;
 		StringBuilder sb = new StringBuilder(length + 1 + (length + 2) / 3);
 		sb.setLength(length);
@@ -100,7 +93,7 @@ public class Radix4Blocks implements Radix4Coding {
 	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		if (isRadixFree(bytes)) return bytes.clone();
+		if (Radix4.isRadixFree(bytes)) return bytes.clone();
 		int length = bytes.length;
 		byte[] out = new byte[ length + 1 + (length + 2) / 3 ];
 		int index = 0;

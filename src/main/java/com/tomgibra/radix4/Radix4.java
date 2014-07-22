@@ -151,4 +151,23 @@ public final class Radix4 {
 		return blocks;
 	}
 
+	//TODO will need to move to Radix4Coding when ready
+	public static boolean isRadixFree(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		for (int i = 0; i < bytes.length; i++) {
+			if (!Radix4.isFixedByte(bytes[i])) return false;
+		}
+		return true;
+	}
+
+	//TODO will need to move to Radix4Coding when ready
+	public static int computeRadixFreeLength(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		for (int i = 0; i < bytes.length; i++) {
+			if (!Radix4.isFixedByte(bytes[i])) return i;
+		}
+		return bytes.length;
+	}
+
+	
 }
