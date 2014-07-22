@@ -14,7 +14,7 @@
  *   limitations under the License.
  * 
  */
-package com.tomgibra.radix4;
+package com.tomgibara.radix4;
 
 import java.io.IOException;
 import java.io.OutputStream;

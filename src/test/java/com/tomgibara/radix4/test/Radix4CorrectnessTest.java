@@ -14,7 +14,7 @@
  *   limitations under the License.
  * 
  */
-package com.tomgibra.radix4.test;
+package com.tomgibara.radix4.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,9 +28,9 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.regex.Pattern;
 
-import com.tomgibra.radix4.Radix4;
-import com.tomgibra.radix4.Radix4Policy;
-import com.tomgibra.radix4.Radix4Streams;
+import com.tomgibara.radix4.Radix4;
+import com.tomgibara.radix4.Radix4Policy;
+import com.tomgibara.radix4.Radix4Streams;
 
 
 import junit.framework.TestCase;

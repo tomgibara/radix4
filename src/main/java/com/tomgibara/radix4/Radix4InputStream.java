@@ -14,9 +14,9 @@
  *   limitations under the License.
  * 
  */
-package com.tomgibra.radix4;
+package com.tomgibara.radix4;
 
-import static com.tomgibra.radix4.Radix4.lookupByte;
+import static com.tomgibara.radix4.Radix4.lookupByte;
 
 import java.io.IOException;
 import java.io.InputStream;

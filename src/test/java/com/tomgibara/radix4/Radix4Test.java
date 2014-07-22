@@ -1,4 +1,6 @@
-package com.tomgibra.radix4;
+package com.tomgibara.radix4;
+
+import com.tomgibara.radix4.Radix4;
 
 import junit.framework.TestCase;
 

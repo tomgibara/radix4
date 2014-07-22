@@ -1,4 +1,4 @@
-package com.tomgibra.radix4;
+package com.tomgibara.radix4;
 
 public interface Radix4Coding {
 

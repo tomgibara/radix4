@@ -14,7 +14,7 @@
  *   limitations under the License.
  * 
  */
-package com.tomgibra.radix4.test;
+package com.tomgibara.radix4.test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -24,7 +24,7 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.tomgibra.radix4.Radix4;
+import com.tomgibara.radix4.Radix4;
 
 import junit.framework.TestCase;
 

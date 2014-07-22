@@ -14,7 +14,7 @@
  *   limitations under the License.
  * 
  */
-package com.tomgibra.radix4;
+package com.tomgibara.radix4;
 
 /**
  * Provides methods for binary-to-text and text-to-binary using Radix4 encoding.
