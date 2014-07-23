@@ -112,7 +112,7 @@ public final class Radix4 {
 	}
 	
 	private static final Radix4Streams streams = new Radix4Streams(Radix4Policy.DEFAULT);
-	private static final Radix4Blocks blocks = new Radix4Blocks();
+	private static final Radix4Blocks blocks = new Radix4Blocks(Radix4Policy.DEFAULT);
 
 	/**
 	 * Obtain an object that can process Radix4 encoded streams according to the
@@ -151,6 +151,20 @@ public final class Radix4 {
 		return blocks;
 	}
 
+	/**
+	 * Obtain an object that can process Radix4 encoded blocks according to the
+	 * supplied policy. The policy controls the operating parameters of the
+	 * encoding/decoding.
+	 * 
+	 * @return a {@link Radix4Blocks} instance which uses the supplied policy
+	 * @see Radix4Policy
+	 */
+
+	public static Radix4Blocks useBlocks(Radix4Policy policy) {
+		if (policy == null) throw new IllegalArgumentException("null policy");
+		return policy == Radix4Policy.DEFAULT ? blocks : new Radix4Blocks(policy.immutableCopy());
+	}
+	
 	//TODO will need to move to Radix4Coding when ready
 	public static boolean isRadixFree(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");

@@ -60,15 +60,10 @@ public class Radix4CorrectnessTest extends TestCase {
 	private Random rand = new Random(0L);
 	
 	public void testSimple() {
-		// standard stream encoding will insert a termination prior to the first unpreserved character (the space)
+		// standard stream encoding will insert a terminator prior to the first unpreserved character (the space)
 		String stdStream = Radix4.useStreams().encodeToString("Hello World!".getBytes());
 		report(stdStream);
 		assertTrue(stdStream.startsWith("Hello."));
-
-		//TODO
-		String stdBlock = Radix4.useBlocks().encodeToString("Hello World!".getBytes());
-		System.out.println(stdBlock);
-		report(stdBlock);
 
 		// optimism and no high bits means original input is preserved
 		String goodOpt = Radix4.useStreams().encodeToString("ABC123".getBytes());
@@ -81,6 +76,12 @@ public class Radix4CorrectnessTest extends TestCase {
 		String goodOptTerm = Radix4.useStreams(policy).encodeToString("ABC123".getBytes());
 		report(goodOptTerm);
 		assertEquals("ABC123..", goodOptTerm);
+
+		// block with optimistic encoding will also have a terminator prior to the space
+		String stdBlock = Radix4.useBlocks().encodeToString("Hello World!".getBytes());
+		report(stdBlock);
+		assertTrue(stdBlock.startsWith("Hello."));
+
 	}
 
 	public void testNoTrailingLineBreaks() {
@@ -201,7 +202,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		}
 		// check length is as expected
 		// adjust for suffix
-		long expectedLength = Radix4.useStreams(policy).computeEncodedLength(bytesIn) + suffix.length();
+		long expectedLength = policy.computeEncodedLength(bytesIn) + suffix.length();
 		assertEquals("Incorrect output length", expectedLength, bytesOut.length);
 	}
 

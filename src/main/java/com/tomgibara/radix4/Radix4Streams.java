@@ -142,54 +142,6 @@ public class Radix4Streams implements Radix4Coding {
 		return new Radix4InputStream.Chars(policy,chars);
 	}
 
-	public long computeEncodedLength(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long radixFreeLength = policy.optimistic ? Radix4.computeRadixFreeLength(bytes) : 0L;
-		return computeEncodedLength(bytes.length, radixFreeLength);
-	}
-
-	/**
-	 * Computes the number of ASCII characters required to encode a specified
-	 * number of bytes. The character count includes the terminating sequence if
-	 * one is specified by the policy.
-	 * 
-	 * @param byteLength
-	 *            the number of bytes to be encoded
-	 * @return the number characters required to Radix4 encode the specified
-	 *         number of bytes
-	 */
-
-	public long computeEncodedLength(long byteLength, long radixFreeLength) {
-		if (byteLength < 0) throw new IllegalArgumentException("negative byteLength");
-		if (radixFreeLength < 0) throw new IllegalArgumentException("negative radixFreeLength");
-		if (radixFreeLength > byteLength) throw new IllegalArgumentException("radixFreeLength exceeds byteLength");
-		
-		if (!policy.optimistic) radixFreeLength = 0L;
-		// calculate length of radix encoded bytes
-		long radixedLength = byteLength - radixFreeLength;
-		long encodedLength = radixFreeLength + radixedLength / 3 * 4;
-
-		// adjust for remainder
-		switch ((int)(radixedLength % 3)) {
-		case 1 : encodedLength += 2; break;
-		case 2 : encodedLength += 3; break;
-		}
-		
-		// adjust for termination
-		if (policy.terminated) encodedLength ++;
-		
-		// adjust for optimism
-		if (policy.optimistic && (policy.terminated || radixFreeLength < byteLength)) encodedLength ++;
-		
-		// adjust for line breaks
-		int lineLength = policy.lineLength;
-		if (lineLength != Radix4Policy.NO_LINE_BREAK && encodedLength > 0) {
-			encodedLength += ((encodedLength - 1) / lineLength) * policy.lineBreakBytes.length;
-		}
-		
-		return encodedLength;
-	}
-	
 	@Override
 	public String encodeToString(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
@@ -207,7 +159,7 @@ public class Radix4Streams implements Radix4Coding {
 	
 	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
-		long encodedLength = computeEncodedLength(bytes);
+		long encodedLength = policy.computeEncodedLength(bytes);
 		if (encodedLength > Integer.MAX_VALUE) throw new IllegalArgumentException("bytes too long");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream((int) (encodedLength));
 		try {
