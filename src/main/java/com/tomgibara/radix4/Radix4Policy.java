@@ -51,6 +51,7 @@ public final class Radix4Policy implements Serializable {
 	int lineLength;
 	String lineBreak;
 	byte[] lineBreakBytes;
+	boolean streaming;
 	boolean terminated;
 	boolean optimistic;
 	char terminator;
@@ -66,6 +67,7 @@ public final class Radix4Policy implements Serializable {
 		lineLength = NO_LINE_BREAK;
 		lineBreak = "\n";
 		lineBreakBytes = LF_BYTES;
+		streaming = true;
 		optimistic = true;
 		terminated = false;
 		terminator = '.';
@@ -78,6 +80,7 @@ public final class Radix4Policy implements Serializable {
 		this.lineLength = that.lineLength;
 		this.lineBreak = that.lineBreak;
 		this.lineBreakBytes = that.lineBreakBytes;
+		this.streaming = that.streaming;
 		this.terminated = that.terminated;
 		this.optimistic = that.optimistic;
 		this.terminator = that.terminator;
@@ -108,6 +111,15 @@ public final class Radix4Policy implements Serializable {
 
 	public int getBufferSize() {
 		return bufferSize;
+	}
+	
+	public void setStreaming(boolean streaming) {
+		checkMutable();
+		this.streaming = streaming;
+	}
+	
+	public boolean isStreaming() {
+		return streaming;
 	}
 	
 	public void setOptimistic(boolean optimistic) {

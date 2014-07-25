@@ -60,25 +60,29 @@ public class Radix4CorrectnessTest extends TestCase {
 	private Random rand = new Random(0L);
 	
 	public void testSimple() {
+		Radix4Policy stream = new Radix4Policy();
+		Radix4Policy block = new Radix4Policy();
+		block.setStreaming(false);
+		
 		// standard stream encoding will insert a terminator prior to the first unpreserved character (the space)
-		String stdStream = Radix4.useStreams().encodeToString("Hello World!".getBytes());
+		String stdStream = Radix4.use(stream).encodeToString("Hello World!".getBytes());
 		report(stdStream);
 		assertTrue(stdStream.startsWith("Hello."));
 
 		// optimism and no high bits means original input is preserved
-		String goodOpt = Radix4.useStreams().encodeToString("ABC123".getBytes());
+		String goodOpt = Radix4.use(stream).encodeToString("ABC123".getBytes());
 		report(goodOpt);
 		assertEquals("ABC123", goodOpt);
 
 		// termination and optimism and no high bits means two termination characters at end
-		Radix4Policy policy = new Radix4Policy();
+		Radix4Policy policy = stream.mutableCopy();
 		policy.setTerminated(true);
-		String goodOptTerm = Radix4.useStreams(policy).encodeToString("ABC123".getBytes());
+		String goodOptTerm = Radix4.use(policy).encodeToString("ABC123".getBytes());
 		report(goodOptTerm);
 		assertEquals("ABC123..", goodOptTerm);
 
 		// block with optimistic encoding will also have a terminator prior to the space
-		String stdBlock = Radix4.useBlocks().encodeToString("Hello World!".getBytes());
+		String stdBlock = Radix4.use(block).encodeToString("Hello World!".getBytes());
 		report(stdBlock);
 		assertTrue(stdBlock.startsWith("Hello."));
 
@@ -89,12 +93,12 @@ public class Radix4CorrectnessTest extends TestCase {
 		rand.nextBytes(bytes);
 		Radix4Policy policy = new Radix4Policy();
 		policy.setLineLength(10);
-		String str = Radix4.useStreams(policy).encodeToString(bytes);
+		String str = Radix4.use(policy).encodeToString(bytes);
 		assertEquals("superflous line breaks", str.trim(), str);
 	}
 	
 	public void testWriteFailsAfterClose() throws IOException {
-		OutputStream out = Radix4.useStreams().outputToStream(new ByteArrayOutputStream());
+		OutputStream out = Radix4.use().outputToStream(new ByteArrayOutputStream());
 		out.write(1);
 		out.close();
 		try {
@@ -143,21 +147,24 @@ public class Radix4CorrectnessTest extends TestCase {
 	
 	public void testBlock() throws IOException {
 		report("* BLOCK");
+		Radix4Policy policy = new Radix4Policy();
+		policy.setStreaming(false);
+		Radix4Coding coding = Radix4.use(policy);
 		Iterator<byte[]> tests = new TestData(0L).iterator();
 		int testCount = TEST_COUNT;
 		for (int i = 0; i < testCount; i++) {
 			report("TEST " + i);
 			byte[] bytes = tests.next();
 			report("IN  ", bytes);
-			String str = Radix4.useBlocks().encodeToString(bytes);
+			String str = coding.encodeToString(bytes);
 			report("STR ENC  ", str);
-			byte[] bs = Radix4.useBlocks().encodeToBytes(bytes);
+			byte[] bs = coding.encodeToBytes(bytes);
 			report("BYTE ENC  ", bs);
 			assertEquals(str, new String(bs, "ASCII"));
-			byte[] decStr = Radix4.useBlocks().decodeFromString(str);
+			byte[] decStr = coding.decodeFromString(str);
 			report("STR DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decStr));
-			byte[] decBs = Radix4.useBlocks().decodeFromBytes(bs);
+			byte[] decBs = coding.decodeFromBytes(bs);
 			report("BYTE DEC  ", decStr);
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decBs));
 		}
@@ -172,8 +179,10 @@ public class Radix4CorrectnessTest extends TestCase {
 	private void testBytes(byte[] bytesIn, Radix4Policy policy, boolean streamed) throws IOException {
 		report("IN   ", bytesIn);
 		report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength(), " OPT:" + policy.isOptimistic(), " TRM:" + policy.isTerminated());
+		policy = policy.mutableCopy();
+		policy.setStreaming(streamed);
+		Radix4Coding coding = Radix4.use(policy);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		Radix4Coding coding = streamed ? Radix4.useStreams(policy) : Radix4.useBlocks(policy);
 		OutputStream out = coding.outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
@@ -215,7 +224,7 @@ public class Radix4CorrectnessTest extends TestCase {
 
 	private void testChars(byte[] bytesIn, Radix4Policy policy) throws IOException {
 		report("IN   ", bytesIn);
-		Radix4Coding coding = Radix4.useStreams(policy);
+		Radix4Coding coding = Radix4.use(policy);
 		
 		StringWriter writer = new StringWriter();
 		OutputStream out = coding.outputToWriter(writer);
