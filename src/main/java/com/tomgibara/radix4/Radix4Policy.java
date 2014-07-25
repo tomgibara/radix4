@@ -278,7 +278,7 @@ public final class Radix4Policy implements Serializable {
 	
 	public long computeEncodedLength(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long radixFreeLength = optimistic ? Radix4.computeRadixFreeLength(bytes) : 0L;
+		long radixFreeLength = optimistic ? computeRadixFreeLength(bytes) : 0L;
 		return computeEncodedLength(bytes.length, radixFreeLength);
 	}
 
@@ -345,4 +345,13 @@ public final class Radix4Policy implements Serializable {
 	private void checkMutable() {
 		if (!mutable) throw new IllegalStateException("immutable policy");
 	}
+
+	private int computeRadixFreeLength(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		for (int i = 0; i < bytes.length; i++) {
+			if (!Radix4.isFixedByte(bytes[i])) return i;
+		}
+		return bytes.length;
+	}
+
 }
