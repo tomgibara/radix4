@@ -35,7 +35,7 @@ import java.io.Writer;
  * 
  */
 
-public class Radix4Streams implements Radix4Coding {
+class Radix4Streams implements Radix4Coding {
 
 	private final Radix4Policy policy;
 	

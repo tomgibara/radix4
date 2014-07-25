@@ -31,7 +31,6 @@ import java.util.regex.Pattern;
 import com.tomgibara.radix4.Radix4;
 import com.tomgibara.radix4.Radix4Coding;
 import com.tomgibara.radix4.Radix4Policy;
-import com.tomgibara.radix4.Radix4Streams;
 
 
 import junit.framework.TestCase;
@@ -216,21 +215,21 @@ public class Radix4CorrectnessTest extends TestCase {
 
 	private void testChars(byte[] bytesIn, Radix4Policy policy) throws IOException {
 		report("IN   ", bytesIn);
-		Radix4Streams streams = Radix4.useStreams(policy);
+		Radix4Coding coding = Radix4.useStreams(policy);
 		
 		StringWriter writer = new StringWriter();
-		OutputStream out = streams.outputToWriter(writer);
+		OutputStream out = coding.outputToWriter(writer);
 		out.write(bytesIn);
 		out.close();
 		writer.close();
 		String str1 = writer.toString();
 		report("STR1 ", str1);
 
-		String str2 = streams.encodeToString(bytesIn);
+		String str2 = coding.encodeToString(bytesIn);
 		report("STR2 ", str2);
 		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		out = streams.outputToStream(baos);
+		out = coding.outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		baos.close();

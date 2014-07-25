@@ -119,11 +119,11 @@ public final class Radix4 {
 	 * default policy. The policy controls the operating parameters of the
 	 * encoding/decoding.
 	 * 
-	 * @return a {@link Radix4Streams} instance
+	 * @return a {@link Radix4Coding} instance
 	 * @see Radix4Policy#DEFAULT
 	 */
 	
-	public static Radix4Streams useStreams() {
+	public static Radix4Coding useStreams() {
 		return streams;
 	}
 	
@@ -132,11 +132,11 @@ public final class Radix4 {
 	 * supplied policy. The policy controls the operating parameters of the
 	 * encoding/decoding.
 	 * 
-	 * @return a {@link Radix4Streams} instance which uses the supplied policy
+	 * @return a {@link Radix4Coding} instance which uses the supplied policy
 	 * @see Radix4Policy
 	 */
 
-	public static Radix4Streams useStreams(Radix4Policy policy) {
+	public static Radix4Coding useStreams(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
 		return policy == Radix4Policy.DEFAULT ? streams : new Radix4Streams(policy.immutableCopy());
 	}
@@ -144,10 +144,10 @@ public final class Radix4 {
 	/**
 	 * Obtain an object that can process Radix4 encoded blocks.
 	 * 
-	 * @return a {@link Radix4Blocks}
+	 * @return a {@link Radix4Coding}
 	 */
 
-	public static Radix4Blocks useBlocks() {
+	public static Radix4Coding useBlocks() {
 		return blocks;
 	}
 
@@ -156,11 +156,11 @@ public final class Radix4 {
 	 * supplied policy. The policy controls the operating parameters of the
 	 * encoding/decoding.
 	 * 
-	 * @return a {@link Radix4Blocks} instance which uses the supplied policy
+	 * @return a {@link Radix4Coding} instance which uses the supplied policy
 	 * @see Radix4Policy
 	 */
 
-	public static Radix4Blocks useBlocks(Radix4Policy policy) {
+	public static Radix4Coding useBlocks(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
 		return policy == Radix4Policy.DEFAULT ? blocks : new Radix4Blocks(policy.immutableCopy());
 	}

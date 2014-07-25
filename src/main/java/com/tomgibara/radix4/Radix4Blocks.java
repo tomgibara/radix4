@@ -37,7 +37,7 @@ import java.util.Arrays;
  * 
  */
 
-public class Radix4Blocks implements Radix4Coding {
+class Radix4Blocks implements Radix4Coding {
 
 	private final Radix4Policy policy;
 	
