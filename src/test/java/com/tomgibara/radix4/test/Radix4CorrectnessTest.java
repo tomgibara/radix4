@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.regex.Pattern;
 
 import com.tomgibara.radix4.Radix4;
+import com.tomgibara.radix4.Radix4Coding;
 import com.tomgibara.radix4.Radix4Policy;
 import com.tomgibara.radix4.Radix4Streams;
 
@@ -162,12 +163,19 @@ public class Radix4CorrectnessTest extends TestCase {
 			assertTrue("byte processed result did not match", Arrays.equals(bytes, decBs));
 		}
 	}
-	
+
 	private void testBytes(byte[] bytesIn, Radix4Policy policy) throws IOException {
+		testBytes(bytesIn, policy, true);
+		// line breaks not supported in blocks
+		if (policy.getLineLength() == 0) testBytes(bytesIn, policy, false);
+	}
+	
+	private void testBytes(byte[] bytesIn, Radix4Policy policy, boolean streamed) throws IOException {
 		report("IN   ", bytesIn);
 		report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength(), " OPT:" + policy.isOptimistic(), " TRM:" + policy.isTerminated());
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		OutputStream out = Radix4.useStreams(policy).outputToStream(baos);
+		Radix4Coding coding = streamed ? Radix4.useStreams(policy) : Radix4.useBlocks(policy);
+		OutputStream out = coding.outputToStream(baos);
 		out.write(bytesIn);
 		out.close();
 		String suffix = "";
@@ -184,7 +192,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		String str = new String(bytesOut, ASCII);
 		report("STR  ", str.length(), " chars ", str);
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytesOut);
-		InputStream in = Radix4.useStreams(policy).inputFromStream(bais);
+		InputStream in = coding.inputFromStream(bais);
 		baos = new ByteArrayOutputStream();
 		transfer(in, baos);
 		byte[] bytesBack = baos.toByteArray();

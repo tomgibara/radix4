@@ -42,101 +42,43 @@ public class Radix4Streams implements Radix4Coding {
 	Radix4Streams(Radix4Policy policy) {
 		this.policy = policy;
 	}
-	
-	/**
-	 * The policy under which the Radix4 encoding and decoding are operating.
-	 * 
-	 * @return the policy, never null
-	 */
-	
+
+	@Override
 	public Radix4Policy getPolicy() {
 		return policy;
 	}
 
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * an {@link OutputStream} to which character data will be written.
-	 * 
-	 * @param out
-	 *            an output stream to which Radix4 encoded data should be
-	 *            written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
+	@Override
 	public OutputStream outputToStream(OutputStream out) {
 		if (out == null) throw new IllegalArgumentException("null out");
 		return new Radix4OutputStream.ByteStream(policy, out);
 	}
 	
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * a {@link Writer} to which character data will be written.
-	 * 
-	 * @param writer
-	 *            a writer to which Radix4 encoded data should be written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
+	@Override
 	public OutputStream outputToWriter(Writer writer) {
 		if (writer == null) throw new IllegalArgumentException("null writer");
 		return new Radix4OutputStream.CharStream(policy, writer);
 	}
 	
-	/**
-	 * Provides encoding from an {@link OutputStream} containing binary data to
-	 * a {@link StringBuilder} to which character data will be appended.
-	 * 
-	 * @param writer
-	 *            a writer to which Radix4 encoded data should be written
-	 * @return an output stream to which binary data may be written for encoding
-	 */
-	
+	@Override
 	public OutputStream outputToBuilder(StringBuilder builder) {
 		if (builder == null) throw new IllegalArgumentException("null builder");
 		return new Radix4OutputStream.Chars(policy, builder);
 	}
 	
-	/**
-	 * Provides decoding from an {@link InputStream} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an input stream from which Radix4 encoded data may be read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
+	@Override
 	public InputStream inputFromStream(InputStream in) {
 		if (in == null) throw new IllegalArgumentException("null in");
 		return new Radix4InputStream.ByteStream(policy, in);
 	}
 	
-	/**
-	 * Provides decoding from a {@link Reader} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an reader from which Radix4 encoded data may be read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
+	@Override
 	public InputStream inputFromReader(Reader reader) {
 		if (reader == null) throw new IllegalArgumentException("null reader");
 		return new Radix4InputStream.CharStream(policy,reader);
 	}
 	
-	/**
-	 * Provides decoding from a {@link CharSequence} containing Radix4 encoded
-	 * data via an {@link InputStream} from which the decoded binary data may be
-	 * read.
-	 * 
-	 * @param in
-	 *            an character sequence from which Radix4 encoded data may be
-	 *            read
-	 * @return an input stream from which the decoded binary data can be read
-	 */
-	
+	@Override
 	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		return new Radix4InputStream.Chars(policy,chars);

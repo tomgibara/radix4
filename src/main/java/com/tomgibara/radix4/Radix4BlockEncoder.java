@@ -48,9 +48,12 @@ abstract class Radix4BlockEncoder<T> {
 					i++;
 				} else {
 					// no longer radix free
-					writeByte(position++, policy.terminatorByte);
 					break;
 				}
+			}
+			// indicate the end of radix free bytes unless it's unecessary
+			if (i < bytes.length || policy.terminated) {
+				writeByte(position++, policy.terminatorByte);
 			}
 		}
 		
