@@ -137,7 +137,9 @@ public final class Radix4 {
 
 	public static Radix4Coding use(Radix4Policy policy) {
 		if (policy == null) throw new IllegalArgumentException("null policy");
-		return policy == Radix4Policy.DEFAULT ? coding : new Radix4Streams(policy.immutableCopy());
+		if (policy == Radix4Policy.DEFAULT) return coding;
+		policy = policy.immutableCopy();
+		return policy.streaming ? new Radix4Streams(policy) : new Radix4Blocks(policy);
 	}
 
 }
