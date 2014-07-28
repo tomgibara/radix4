@@ -18,10 +18,18 @@ package com.tomgibara.radix4;
 
 abstract class Radix4BlockEncoder<T> {
 
-	private final Radix4Policy policy;
+	final Radix4Policy policy;
+	private final boolean breakLines;
+	final int lineBreakLength;
+	private final int lineLength;
+	private final int fullLineLength;
 	
 	Radix4BlockEncoder(Radix4Policy policy) {
 		this.policy = policy;
+		breakLines = policy.lineLength != Radix4Policy.NO_LINE_BREAK;
+		lineBreakLength = policy.lineBreakBytes.length;
+		lineLength = policy.lineLength;
+		fullLineLength = lineLength + lineBreakLength;
 	}
 	
 	T encode(byte[] bytes) {
@@ -44,60 +52,89 @@ abstract class Radix4BlockEncoder<T> {
 				int c = b & 0x3f;
 				if (c == b) {
 					// still radix free
-					writeByte(position++, Radix4.chars[ c ]);
+					position = writeWithBreaks(position, Radix4.chars[ c ]);
 					i++;
 				} else {
 					// no longer radix free
 					break;
 				}
 			}
-			// indicate the end of radix free bytes unless it's unecessary
+			// indicate the end of radix free bytes unless it's unnecessary
 			if (i < bytes.length || policy.terminated) {
-				writeByte(position++, policy.terminatorByte);
+				position = writeWithBreaks(position, policy.terminatorByte);
 			}
 		}
-		
+
 		// then deal with the rest
 		{
 			// offset to radices
 			int offset = position + bytes.length - i;
-			// index within the triple: 0,1 or 2
+			// adjust for line breaks
+			if (breakLines) {
+				int bytesSoFar = i;
+				if (policy.optimistic) bytesSoFar ++;
+				offset -= policy.extraLineBreakLength(bytesSoFar); // don't double count
+				offset += policy.extraLineBreakLength(offset);
+			}
+
+			// index within the triple: 0, 1 or 2
 			int index = 0;
-			// accumulates the radices of byte tripples
+			// accumulates the radices of byte triples
 			int radix = 0;
 			while (i < bytes.length) {
 				int b = bytes[i++];
 				// map the byte
 				b = Radix4.encmap[b & 0xff];
 				int c = b & 0x3f;
-				writeByte(position++, Radix4.chars[ c ]);
+				position = writeWithBreaks(position, Radix4.chars[ c ]);
 				radix |= (b & 0xc0) >> ((++index) << 1);
 				// write a complete radix
 				if (index == 3) {
-					writeByte(offset++, Radix4.chars[ radix ]);
+					offset = writeWithBreaks(offset, Radix4.chars[ radix ]);
 					index = 0;
 					radix = 0;
 				}
 			}
 			// output any remaining radix part
 			if (index != 0) {
-				writeByte(offset++, Radix4.chars[ radix ]);
+				offset = writeWithBreaks(offset, Radix4.chars[ radix ]);
 			}
 		}
 
 		// finally terminate if necessary
 		if (policy.terminated) {
-			writeByte(length - 1, policy.terminatorByte);
+			writeWithBreaks(length - 1, policy.terminatorByte);
 		}
 
 		return generate();
 	}
 	
-	abstract void allocate(int length);
+	private int writeWithBreaks(int i, byte b) {
+//		writeByte(i++, b);
+//		//TODO this is inefficient
+//		if (breakLines && i > 0 && i % fullLineLength == 0) {
+//			writeLineBreak(i);
+//			i += lineBreakLength;
+//		}
+//		return i;
+		//TODO this is inefficient
+		if (breakLines && i % fullLineLength == lineLength) {
+			writeLineBreak(i);
+			i += lineBreakLength;
+		}
+		writeByte(i++, b);
+		return i;
+	}
 	
+	abstract void allocate(int length);
+
 	abstract void writeByte(int i, byte b);
 
+	abstract void writeLineBreak(int i);
+	
 	abstract T generate();
+	
+	abstract void dump();
 	
 	final static class BytesEncoder extends Radix4BlockEncoder<byte[]> {
 		
@@ -118,8 +155,20 @@ abstract class Radix4BlockEncoder<T> {
 		}
 		
 		@Override
+		void writeLineBreak(int i) {
+			System.arraycopy(policy.lineBreakBytes, 0, bytes, i, lineBreakLength);
+		}
+		
+		@Override
 		byte[] generate() {
 			return bytes;
+		}
+		
+		@Override
+		void dump() {
+			System.out.println(" ** DUMP ** ");
+			if (bytes.length > 0) System.out.println((bytes[0]));
+			System.out.println(new String(bytes, Radix4.ASCII));
 		}
 		
 	}
@@ -139,6 +188,14 @@ abstract class Radix4BlockEncoder<T> {
 		}
 		
 		@Override
+		void writeLineBreak(int i) {
+			byte[] bytes = policy.lineBreakBytes;
+			for (int j = 0; j < lineBreakLength; j++) {
+				chars.setCharAt(i + j, (char) bytes[j]);
+			}
+		}
+		
+		@Override
 		void writeByte(int i, byte b) {
 			chars.setCharAt(i, (char) (b & 0xff));
 		}
@@ -146,6 +203,12 @@ abstract class Radix4BlockEncoder<T> {
 		@Override
 		String generate() {
 			return chars.toString();
+		}
+		
+		@Override
+		void dump() {
+			System.out.println(" ** DUMP ** ");
+			System.out.println(chars);
 		}
 		
 	}

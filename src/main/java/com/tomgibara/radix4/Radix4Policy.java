@@ -317,7 +317,7 @@ public final class Radix4Policy implements Serializable {
 		
 		// adjust for line breaks
 		if (lineLength != NO_LINE_BREAK && encodedLength > 0) {
-			encodedLength += ((encodedLength - 1) / lineLength) * lineBreakBytes.length;
+			encodedLength += extraLineBreakLength(encodedLength);
 		}
 		
 		return encodedLength;
@@ -340,6 +340,14 @@ public final class Radix4Policy implements Serializable {
 	@Override
 	public int hashCode() {
 		return lineLength ^ bufferSize * 31 ^ lineBreak.hashCode() ^ terminator;
+	}
+	
+	int extraLineBreakLength(int encodedLength) {
+		return encodedLength == 0 ? 0 : ((encodedLength - 1) / lineLength) * lineBreakBytes.length;
+	}
+	
+	long extraLineBreakLength(long encodedLength) {
+		return encodedLength == 0L ? 0L : ((encodedLength - 1) / lineLength) * lineBreakBytes.length;
 	}
 	
 	private void checkMutable() {

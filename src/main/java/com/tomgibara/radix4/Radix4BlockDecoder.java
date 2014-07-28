@@ -100,15 +100,39 @@ abstract class Radix4BlockDecoder<T> {
 	final static class BytesDecoder extends Radix4BlockDecoder<byte[]> {
 
 		private final byte[] bytes;
+		private final int length;
 		
-		BytesDecoder(Radix4Policy policy, byte[] bytes) {
+		BytesDecoder(Radix4Policy policy, byte[] bytes, boolean stripWhitespace) {
 			super(policy);
-			this.bytes = bytes;
+			byte[] bs = null;
+			int j = 0;
+			int len = bytes.length;
+			if (stripWhitespace) {
+				for (int i = 0; i < len; i++) {
+					byte b = bytes[i];
+					if (Radix4.isWhitespace(b & 0xff)) {
+						if (bs == null) {
+							bs = new byte[len];
+							System.arraycopy(bytes, 0, bs, 0, i);
+						}
+					} else {
+						if (bs != null) bs[j] = b;
+						j++;
+					}
+				}
+			}
+			if (bs == null) {
+				this.bytes = bytes;
+				length = len;
+			} else {
+				this.bytes = bs;
+				length = j;
+			}
 		}
 
 		@Override
 		int length() {
-			return bytes.length;
+			return length;
 		}
 		
 		@Override
@@ -122,9 +146,23 @@ abstract class Radix4BlockDecoder<T> {
 		
 		private final CharSequence chars;
 		
-		CharsDecoder(Radix4Policy policy, CharSequence chars) {
+		CharsDecoder(Radix4Policy policy, CharSequence chars, boolean stripWhitespace) {
 			super(policy);
-			this.chars = chars;
+			StringBuilder sb = null;
+			if (stripWhitespace) {
+				int len = chars.length();
+				for (int i = 0; i < len; i++) {
+					char c = chars.charAt(i);
+					if (Radix4.isWhitespace(c)) {
+						if (sb == null) {
+							sb = new StringBuilder(chars.subSequence(0, i));
+						}
+					} else if (sb != null) {
+						sb.append(c);
+					}
+				}
+			}
+			this.chars = sb == null ? chars : sb;
 		}
 
 		@Override

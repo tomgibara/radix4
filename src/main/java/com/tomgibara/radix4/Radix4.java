@@ -98,7 +98,7 @@ public final class Radix4 {
 		return c >=0 && c < 256 ? bytes[c] : -1;
 	}
 	
-	static boolean isWhitespace(char c) {
+	static boolean isWhitespace(int c) {
 		return c < 256 && bytes[c] == -2;
 	}
 	

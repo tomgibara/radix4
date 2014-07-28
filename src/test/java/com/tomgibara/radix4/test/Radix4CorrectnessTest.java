@@ -56,14 +56,14 @@ public class Radix4CorrectnessTest extends TestCase {
 			System.out.println();
 		}
 	}
-	
+
 	private Random rand = new Random(0L);
-	
+
 	public void testSimple() {
 		Radix4Policy stream = new Radix4Policy();
 		Radix4Policy block = new Radix4Policy();
 		block.setStreaming(false);
-		
+
 		// standard stream encoding will insert a terminator prior to the first unpreserved character (the space)
 		String stdStream = Radix4.use(stream).encodeToString("Hello World!".getBytes());
 		report(stdStream);
@@ -85,7 +85,6 @@ public class Radix4CorrectnessTest extends TestCase {
 		String stdBlock = Radix4.use(block).encodeToString("Hello World!".getBytes());
 		report(stdBlock);
 		assertTrue(stdBlock.startsWith("Hello."));
-
 	}
 
 	public void testNoTrailingLineBreaks() {
@@ -96,7 +95,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		String str = Radix4.use(policy).encodeToString(bytes);
 		assertEquals("superflous line breaks", str.trim(), str);
 	}
-	
+
 	public void testWriteFailsAfterClose() throws IOException {
 		OutputStream out = Radix4.use().outputToStream(new ByteArrayOutputStream());
 		out.write(1);
@@ -108,7 +107,7 @@ public class Radix4CorrectnessTest extends TestCase {
 			/* expected */
 		}
 	}
-	
+
 	public void testBijection() throws IOException {
 		report("* BIJECTION");
 		Iterator<byte[]> tests = new TestData(0L).iterator();
@@ -119,10 +118,15 @@ public class Radix4CorrectnessTest extends TestCase {
 			policy.setLineLength(1 + rand.nextInt(50));
 			policy.setBufferSize(rand.nextInt(100));
 			policy.setOptimistic(rand.nextBoolean());
-			testBytes(tests.next(), policy);
+			policy.setStreaming(rand.nextBoolean());
+			report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength(), " OPT:", policy.isOptimistic(), " TRM:", policy.isTerminated(), " STRM:", policy.isStreaming());
+			byte[] bytes = tests.next();
+			testBytes(bytes, policy);
+			testChars(bytes, policy);
+			testNonStreamed(bytes, policy);
 		}
 	}
-	
+
 	public void testTermination() throws IOException {
 		report("* SELF TERMINATION");
 		Radix4Policy policy = new Radix4Policy();
@@ -134,17 +138,7 @@ public class Radix4CorrectnessTest extends TestCase {
 			testBytes(tests.next(), policy);
 		}
 	}
-	
-	public void testChars() throws IOException {
-		report("* CHARS");
-		Iterator<byte[]> tests = new TestData(0L).iterator();
-		int testCount = TEST_COUNT;
-		for (int i = 0; i < testCount; i++) {
-			report("TEST ", i);
-			testChars(tests.next(), Radix4Policy.DEFAULT);
-		}
-	}
-	
+
 	public void testBlock() throws IOException {
 		report("* BLOCK");
 		Radix4Policy policy = new Radix4Policy();
@@ -171,16 +165,7 @@ public class Radix4CorrectnessTest extends TestCase {
 	}
 
 	private void testBytes(byte[] bytesIn, Radix4Policy policy) throws IOException {
-		testBytes(bytesIn, policy, true);
-		// line breaks not supported in blocks
-		if (policy.getLineLength() == 0) testBytes(bytesIn, policy, false);
-	}
-	
-	private void testBytes(byte[] bytesIn, Radix4Policy policy, boolean streamed) throws IOException {
 		report("IN   ", bytesIn);
-		report("PLCY ", " BUF:", policy.getBufferSize(), " LEN:", policy.getLineLength(), " OPT:" + policy.isOptimistic(), " TRM:" + policy.isTerminated());
-		policy = policy.mutableCopy();
-		policy.setStreaming(streamed);
 		Radix4Coding coding = Radix4.use(policy);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		OutputStream out = coding.outputToStream(baos);
@@ -205,7 +190,7 @@ public class Radix4CorrectnessTest extends TestCase {
 		transfer(in, baos);
 		byte[] bytesBack = baos.toByteArray();
 		report("BACK ", bytesBack);
-		
+
 		// check returned data matches
 		assertTrue("Bytes back did not match", Arrays.equals(bytesIn, bytesBack));
 		// check output contained only valid values
@@ -249,26 +234,43 @@ public class Radix4CorrectnessTest extends TestCase {
 		assertEquals(str3, str1);
 	}
 
-    private static void transfer(final InputStream in, final OutputStream out) throws IOException {
-        try {
-            int r;
-            while ((r = in.read(buffer)) > -1) {
-                out.write(buffer, 0, r);
-            }
-        } finally {
-            in.close();
-            out.close();
-        }
-    }
-    
-    private static class TestData implements Iterable<byte[]> {
+	private void testNonStreamed(byte[] bytesIn, Radix4Policy policy) throws IOException {
+		report("* NON-STREAMED");
+		Radix4Coding coding = Radix4.use(policy);
+		report("IN  ", bytesIn);
+		String str = coding.encodeToString(bytesIn);
+		report("STR ENC  ", str);
+		byte[] bs = coding.encodeToBytes(bytesIn);
+		report("BYTE ENC  ", bs);
+		assertEquals(str, new String(bs, "ASCII"));
+		byte[] decStr = coding.decodeFromString(str);
+		report("STR DEC  ", decStr);
+		assertTrue("byte processed result did not match", Arrays.equals(bytesIn, decStr));
+		byte[] decBs = coding.decodeFromBytes(bs);
+		report("BYTE DEC  ", Arrays.toString(decBs));
+		assertTrue("byte processed result did not match", Arrays.equals(bytesIn, decBs));
+	}
 
-    	private final long seed;
-    	
-    	public TestData(long seed) {
-    		this.seed = seed;
+	private static void transfer(final InputStream in, final OutputStream out) throws IOException {
+		try {
+			int r;
+			while ((r = in.read(buffer)) > -1) {
+				out.write(buffer, 0, r);
+			}
+		} finally {
+			in.close();
+			out.close();
 		}
-    	
+	}
+
+	private static class TestData implements Iterable<byte[]> {
+
+		private final long seed;
+
+		public TestData(long seed) {
+			this.seed = seed;
+		}
+
 		@Override
 		public Iterator<byte[]> iterator() {
 			return new Iterator<byte[]>() {
@@ -295,6 +297,6 @@ public class Radix4CorrectnessTest extends TestCase {
 				}
 			};
 		}
-    	
-    }
+
+	}
 }

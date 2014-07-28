@@ -23,8 +23,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.CharBuffer;
-import java.util.Arrays;
 
 /**
  * Provides methods for binary-to-text and text-to-binary using Radix4 encoding.
@@ -97,6 +95,7 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int b = in.read();
 						if (b == -1) throw new IOException("Unexpected end of stream");
+						if (Radix4.isWhitespace(b)) continue; // ignore whitespace
 						out.write(b);
 						if (b == term) {
 							if (seekingFirstRadix) {
@@ -111,11 +110,23 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int r = in.read(buffer);
 						if (r == -1) break;
+						r = stripWhitespace(buffer, r);
 						out.write(buffer, 0, r);
 					}
 				}
 				bytes = out.toByteArray();
-				return new Radix4BlockDecoder.BytesDecoder(policy, bytes).decode();
+				return new Radix4BlockDecoder.BytesDecoder(policy, bytes, false).decode();
+			}
+			
+			private int stripWhitespace(byte[] buffer, int length) {
+				int j = 0;
+				for (int i = 0; i < length; i++) {
+					if (!Radix4.isWhitespace(buffer[i] & 0xff)) {
+						if (i != j) buffer[j] = buffer[i];
+						j++;
+					}
+				}
+				return j;
 			}
 		};
 	}
@@ -133,6 +144,7 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int c = reader.read();
 						if (c == -1) throw new IOException("Unexpected end of stream");
+						if (Radix4.isWhitespace(c)) continue; // ignore whitespace
 						sb.append(c);
 						if (c == term) {
 							if (seekingFirstRadix) {
@@ -147,10 +159,22 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int r = reader.read(buffer);
 						if (r == -1) break;
+						r = stripWhitespace(buffer, r);
 						sb.append(buffer, 0, r);
 					}
 				}
-				return new Radix4BlockDecoder.CharsDecoder(policy, sb).decode();
+				return new Radix4BlockDecoder.CharsDecoder(policy, sb, false).decode();
+			}
+			
+			private int stripWhitespace(char[] buffer, int length) {
+				int j = 0;
+				for (int i = 0; i < length; i++) {
+					if (!Radix4.isWhitespace(buffer[i])) {
+						if (i != j) buffer[j] = buffer[i];
+						j++;
+					}
+				}
+				return j;
 			}
 		};
 	}
@@ -158,7 +182,7 @@ class Radix4Blocks implements Radix4Coding {
 	@Override
 	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new ByteArrayInputStream( new Radix4BlockDecoder.CharsDecoder(policy, chars).decode() );
+		return new ByteArrayInputStream( new Radix4BlockDecoder.CharsDecoder(policy, chars, true).decode() );
 	}
 	
 	@Override
@@ -176,13 +200,13 @@ class Radix4Blocks implements Radix4Coding {
 	@Override
 	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new Radix4BlockDecoder.CharsDecoder(policy, chars).decode();
+		return new Radix4BlockDecoder.CharsDecoder(policy, chars, true).decode();
 	}
 
 	@Override
 	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		return new Radix4BlockDecoder.BytesDecoder(policy, bytes).decode();
+		return new Radix4BlockDecoder.BytesDecoder(policy, bytes, true).decode();
 	}
 
 	//TODO could replace with a more efficient implementation that avoids byte[] copy
