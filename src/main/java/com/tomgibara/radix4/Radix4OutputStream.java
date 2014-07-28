@@ -124,7 +124,7 @@ abstract class Radix4OutputStream extends OutputStream {
 	private void flushBuffer() throws IOException {
 		if (position == 0) return;
 		int lineLength = radix4.lineLength;
-		if (lineLength == Radix4Policy.NO_LINE_BREAK) {
+		if (lineLength == Radix4Config.NO_LINE_BREAK) {
 			writeBuffer(0, position);
 		} else {
 			int last = 0;

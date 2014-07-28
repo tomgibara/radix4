@@ -19,18 +19,13 @@ package com.tomgibara.radix4;
 import java.io.Serializable;
 
 /**
- * Provides tailored encoding and decoding by a {@link Radix4}. Attempting to
- * modify the settings of an immutable policy will raise an
- * {@link IllegalStateException}.
- * 
- * Immutable instances of this class are safe for concurrent access from
- * multiple threads.
+ * Allows the encoding and decoding of a {@link Radix4} to be configured.
  * 
  * @author tomgibara
  * 
  */
 
-public final class Radix4Policy implements Serializable {
+public final class Radix4Config implements Serializable {
 
 	private static final long serialVersionUID = 3743746958617647872L;
 
@@ -48,11 +43,7 @@ public final class Radix4Policy implements Serializable {
 	boolean optimistic;
 	char terminator;
 	
-	/**
-	 * Creates a new mutable policy with default settings.
-	 */
-	
-	Radix4Policy(boolean streaming) {
+	Radix4Config(boolean streaming) {
 		bufferSize = DEFAULT_BUFFER_SIZE;
 		lineLength = NO_LINE_BREAK;
 		lineBreak = DEFAULT_LINE_BREAK;
@@ -62,7 +53,7 @@ public final class Radix4Policy implements Serializable {
 		terminator = DEFAULT_TERMINATOR;
 	}
 	
-	Radix4Policy(Radix4 radix4) {
+	Radix4Config(Radix4 radix4) {
 		bufferSize = radix4.bufferSize;
 		lineLength = radix4.lineLength;
 		lineBreak = radix4.lineBreak;
@@ -84,7 +75,7 @@ public final class Radix4Policy implements Serializable {
 	 *            indicate the default size.
 	 */
 	
-	public Radix4Policy setBufferSize(int bufferSize) {
+	public Radix4Config setBufferSize(int bufferSize) {
 		if (bufferSize < 1) bufferSize = DEFAULT_BUFFER_SIZE;
 		this.bufferSize = bufferSize;
 		return this;
@@ -99,12 +90,12 @@ public final class Radix4Policy implements Serializable {
 		return bufferSize;
 	}
 	
-	public Radix4Policy setStreaming(boolean streaming) {
+	public Radix4Config setStreaming(boolean streaming) {
 		this.streaming = streaming;
 		return this;
 	}
 	
-	public Radix4Policy setOptimistic(boolean optimistic) {
+	public Radix4Config setOptimistic(boolean optimistic) {
 		this.optimistic = optimistic;
 		return this;
 	}
@@ -120,7 +111,7 @@ public final class Radix4Policy implements Serializable {
 	 * @return 
 	 */
 	
-	public Radix4Policy setLineLength(int lineLength) {
+	public Radix4Config setLineLength(int lineLength) {
 		this.lineLength = lineLength < 1 ? NO_LINE_BREAK : lineLength;
 		return this;
 	}
@@ -139,7 +130,7 @@ public final class Radix4Policy implements Serializable {
 	 *             non-whitespace characters.
 	 */
 	
-	public Radix4Policy setLineBreak(String lineBreak) {
+	public Radix4Config setLineBreak(String lineBreak) {
 		if (lineBreak == null) throw new IllegalArgumentException("null lineBreak");
 		int length = lineBreak.length();
 		if (length == 0) throw new IllegalArgumentException("empty lineBreak");
@@ -161,7 +152,7 @@ public final class Radix4Policy implements Serializable {
 	 * @return 
 	 */
 
-	public Radix4Policy setTerminated(boolean terminated) {
+	public Radix4Config setTerminated(boolean terminated) {
 		this.terminated = terminated;
 		return this;
 	}
@@ -179,7 +170,7 @@ public final class Radix4Policy implements Serializable {
 	 *             as a whitespace
 	 */
 	
-	public Radix4Policy setTerminator(char terminator) {
+	public Radix4Config setTerminator(char terminator) {
 		if (!Radix4.isTerminator(terminator)) throw new IllegalArgumentException("invalid terminator");
 		this.terminator = terminator;
 		return this;
@@ -192,8 +183,8 @@ public final class Radix4Policy implements Serializable {
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) return true;
-		if (!(obj instanceof Radix4Policy)) return false;
-		Radix4Policy that = (Radix4Policy) obj;
+		if (!(obj instanceof Radix4Config)) return false;
+		Radix4Config that = (Radix4Config) obj;
 		if (this.lineLength != that.lineLength) return false;
 		if (!this.lineBreak.equals(that.lineBreak)) return false;
 		if (this.terminated != that.terminated) return false;

@@ -26,9 +26,9 @@ public interface Radix4Coding {
 	// accessors
 	
 	/**
-	 * The policy under which the Radix4 encoding and decoding are operating.
+	 * The definition of the Radix4 coding being used.
 	 * 
-	 * @return the policy, never null
+	 * @return the Radix4 definition, never null
 	 */
 
 	Radix4 getRadix4();

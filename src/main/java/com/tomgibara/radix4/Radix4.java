@@ -36,8 +36,8 @@ public final class Radix4 {
 	static final Charset ASCII = Charset.forName("ASCII");
 	private static final byte[] DEFAULT_LINE_BREAK_BYTES = { '\n' };
 	
-	private static final Radix4 STREAM = new Radix4(new Radix4Policy(true));
-	private static final Radix4 BLOCK = new Radix4(new Radix4Policy(false));
+	private static final Radix4 STREAM = new Radix4(new Radix4Config(true));
+	private static final Radix4 BLOCK = new Radix4(new Radix4Config(false));
 
 	static final int[] decmap = new int[] {
 		0x5f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45,
@@ -137,14 +137,14 @@ public final class Radix4 {
 
 	private Radix4Coding coding = null;
 	
-	Radix4(Radix4Policy policy) {
-		bufferSize = policy.bufferSize;
-		lineLength = policy.lineLength;
-		lineBreak  = policy.lineBreak;
-		streaming  = policy.streaming;
-		optimistic = policy.optimistic;
-		terminated = policy.terminated;
-		terminator = policy.terminator;
+	Radix4(Radix4Config config) {
+		bufferSize = config.bufferSize;
+		lineLength = config.lineLength;
+		lineBreak  = config.lineBreak;
+		streaming  = config.streaming;
+		optimistic = config.optimistic;
+		terminated = config.terminated;
+		terminator = config.terminator;
 		
 		// optimization - line break commonly left untouched - avoid creating many small byte arrays
 		lineBreakBytes = lineBreak.equals("\n") ? DEFAULT_LINE_BREAK_BYTES : lineBreak.getBytes(Radix4.ASCII);
@@ -210,7 +210,7 @@ public final class Radix4 {
 	 * encoding/decoding.
 	 * 
 	 * @return a {@link Radix4Coding} instance
-	 * @see Radix4Policy#DEFAULT
+	 * @see Radix4Config#DEFAULT
 	 */
 	
 	public Radix4Coding coding() {
@@ -218,8 +218,8 @@ public final class Radix4 {
 		return coding = streaming ? new Radix4Streams(this) : new Radix4Blocks(this);
 	}
 
-	public Radix4Policy configure() {
-		return new Radix4Policy(this);
+	public Radix4Config configure() {
+		return new Radix4Config(this);
 	}
 	
 	public long computeEncodedLength(byte[] bytes) {
@@ -231,7 +231,7 @@ public final class Radix4 {
 	/**
 	 * Computes the number of ASCII characters required to encode a specified
 	 * number of bytes. The character count includes the terminating sequence if
-	 * one is specified by the policy.
+	 * one is specified.
 	 * 
 	 * @param byteLength
 	 *            the number of bytes to be encoded
@@ -262,7 +262,7 @@ public final class Radix4 {
 		if (optimistic && (terminated || radixFreeLength < byteLength)) encodedLength ++;
 		
 		// adjust for line breaks
-		if (lineLength != Radix4Policy.NO_LINE_BREAK && encodedLength > 0) {
+		if (lineLength != Radix4Config.NO_LINE_BREAK && encodedLength > 0) {
 			encodedLength += extraLineBreakLength(encodedLength);
 		}
 		

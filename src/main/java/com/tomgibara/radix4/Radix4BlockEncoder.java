@@ -26,7 +26,7 @@ abstract class Radix4BlockEncoder<T> {
 	
 	Radix4BlockEncoder(Radix4 radix4) {
 		this.radix4 = radix4;
-		breakLines = radix4.lineLength != Radix4Policy.NO_LINE_BREAK;
+		breakLines = radix4.lineLength != Radix4Config.NO_LINE_BREAK;
 		lineBreakLength = radix4.lineBreakBytes.length;
 		lineLength = radix4.lineLength;
 		fullLineLength = lineLength + lineBreakLength;
