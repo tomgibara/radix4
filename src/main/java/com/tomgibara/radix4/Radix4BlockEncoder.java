@@ -18,22 +18,22 @@ package com.tomgibara.radix4;
 
 abstract class Radix4BlockEncoder<T> {
 
-	final Radix4Policy policy;
+	final Radix4 radix4;
 	private final boolean breakLines;
 	final int lineBreakLength;
 	private final int lineLength;
 	private final int fullLineLength;
 	
-	Radix4BlockEncoder(Radix4Policy policy) {
-		this.policy = policy;
-		breakLines = policy.lineLength != Radix4Policy.NO_LINE_BREAK;
-		lineBreakLength = policy.lineBreakBytes.length;
-		lineLength = policy.lineLength;
+	Radix4BlockEncoder(Radix4 radix4) {
+		this.radix4 = radix4;
+		breakLines = radix4.lineLength != Radix4Policy.NO_LINE_BREAK;
+		lineBreakLength = radix4.lineBreakBytes.length;
+		lineLength = radix4.lineLength;
 		fullLineLength = lineLength + lineBreakLength;
 	}
 	
 	T encode(byte[] bytes) {
-		long longLength = policy.computeEncodedLength(bytes);
+		long longLength = radix4.computeEncodedLength(bytes);
 		if (longLength > Integer.MAX_VALUE) throw new IllegalArgumentException("bytes too long");
 		int length = (int) longLength;
 		allocate(length);
@@ -44,7 +44,7 @@ abstract class Radix4BlockEncoder<T> {
 		int position = 0;
 
 		// first deal with any optimistic bytes
-		if (policy.optimistic) {
+		if (radix4.optimistic) {
 			while (i < bytes.length) {
 				int b = bytes[i];
 				// map the byte
@@ -60,8 +60,8 @@ abstract class Radix4BlockEncoder<T> {
 				}
 			}
 			// indicate the end of radix free bytes unless it's unnecessary
-			if (i < bytes.length || policy.terminated) {
-				position = writeWithBreaks(position, policy.terminatorByte);
+			if (i < bytes.length || radix4.terminated) {
+				position = writeWithBreaks(position, radix4.terminatorByte);
 			}
 		}
 
@@ -72,9 +72,9 @@ abstract class Radix4BlockEncoder<T> {
 			// adjust for line breaks
 			if (breakLines) {
 				int bytesSoFar = i;
-				if (policy.optimistic) bytesSoFar ++;
-				offset -= policy.extraLineBreakLength(bytesSoFar); // don't double count
-				offset += policy.extraLineBreakLength(offset);
+				if (radix4.optimistic) bytesSoFar ++;
+				offset -= radix4.extraLineBreakLength(bytesSoFar); // don't double count
+				offset += radix4.extraLineBreakLength(offset);
 			}
 
 			// index within the triple: 0, 1 or 2
@@ -102,8 +102,8 @@ abstract class Radix4BlockEncoder<T> {
 		}
 
 		// finally terminate if necessary
-		if (policy.terminated) {
-			writeWithBreaks(length - 1, policy.terminatorByte);
+		if (radix4.terminated) {
+			writeWithBreaks(length - 1, radix4.terminatorByte);
 		}
 
 		return generate();
@@ -140,8 +140,8 @@ abstract class Radix4BlockEncoder<T> {
 		
 		private byte[] bytes = null;
 		
-		BytesEncoder(Radix4Policy policy) {
-			super(policy);
+		BytesEncoder(Radix4 radix4) {
+			super(radix4);
 		}
 
 		@Override
@@ -156,7 +156,7 @@ abstract class Radix4BlockEncoder<T> {
 		
 		@Override
 		void writeLineBreak(int i) {
-			System.arraycopy(policy.lineBreakBytes, 0, bytes, i, lineBreakLength);
+			System.arraycopy(radix4.lineBreakBytes, 0, bytes, i, lineBreakLength);
 		}
 		
 		@Override
@@ -177,8 +177,8 @@ abstract class Radix4BlockEncoder<T> {
 		
 		private StringBuilder chars = null;
 		
-		CharsEncoder(Radix4Policy policy) {
-			super(policy);
+		CharsEncoder(Radix4 radix4) {
+			super(radix4);
 		}
 
 		@Override
@@ -189,7 +189,7 @@ abstract class Radix4BlockEncoder<T> {
 		
 		@Override
 		void writeLineBreak(int i) {
-			byte[] bytes = policy.lineBreakBytes;
+			byte[] bytes = radix4.lineBreakBytes;
 			for (int j = 0; j < lineBreakLength; j++) {
 				chars.setCharAt(i + j, (char) bytes[j]);
 			}

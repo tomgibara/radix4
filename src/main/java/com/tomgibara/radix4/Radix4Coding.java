@@ -16,7 +16,6 @@
  */
 package com.tomgibara.radix4;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -24,13 +23,15 @@ import java.io.Writer;
 
 public interface Radix4Coding {
 
+	// accessors
+	
 	/**
 	 * The policy under which the Radix4 encoding and decoding are operating.
 	 * 
 	 * @return the policy, never null
 	 */
 
-	Radix4Policy getPolicy();
+	Radix4 getRadix4();
 
 	// stream based methods
 	

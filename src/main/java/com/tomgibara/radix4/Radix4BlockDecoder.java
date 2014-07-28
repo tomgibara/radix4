@@ -18,16 +18,16 @@ package com.tomgibara.radix4;
 
 abstract class Radix4BlockDecoder<T> {
 
-	private final Radix4Policy policy;
+	private final Radix4 radix4;
 	
-	Radix4BlockDecoder(Radix4Policy policy) {
-		this.policy = policy;
+	Radix4BlockDecoder(Radix4 radix4) {
+		this.radix4 = radix4;
 	}
 	
 	public byte[] decode() {
 		int length = length();
-		if (policy.terminated) {
-			if (readByte(length - 1) != policy.terminatorByte) {
+		if (radix4.terminated) {
+			if (readByte(length - 1) != radix4.terminatorByte) {
 				throw new IllegalArgumentException("missing terminator");
 			} else {
 				length--;
@@ -35,11 +35,11 @@ abstract class Radix4BlockDecoder<T> {
 		}
 		int firstRadix;
 		int termLength;
-		if (policy.optimistic) {
+		if (radix4.optimistic) {
 			firstRadix = length;
 			termLength = 0;
 			for (int i = length - 1; i >= 0; i--) {
-				if (readByte(i) == policy.terminatorByte) {
+				if (readByte(i) == radix4.terminatorByte) {
 					firstRadix = i;
 					termLength = 1;
 					break;
@@ -102,8 +102,8 @@ abstract class Radix4BlockDecoder<T> {
 		private final byte[] bytes;
 		private final int length;
 		
-		BytesDecoder(Radix4Policy policy, byte[] bytes, boolean stripWhitespace) {
-			super(policy);
+		BytesDecoder(Radix4 radix4, byte[] bytes, boolean stripWhitespace) {
+			super(radix4);
 			byte[] bs = null;
 			int j = 0;
 			int len = bytes.length;
@@ -146,8 +146,8 @@ abstract class Radix4BlockDecoder<T> {
 		
 		private final CharSequence chars;
 		
-		CharsDecoder(Radix4Policy policy, CharSequence chars, boolean stripWhitespace) {
-			super(policy);
+		CharsDecoder(Radix4 radix4, CharSequence chars, boolean stripWhitespace) {
+			super(radix4);
 			StringBuilder sb = null;
 			if (stripWhitespace) {
 				int len = chars.length();

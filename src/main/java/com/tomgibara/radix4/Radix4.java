@@ -32,8 +32,13 @@ import java.util.Arrays;
 
 public final class Radix4 {
 
+	// note order dependent - must be assigned before BLOCK & STREAM construction
 	static final Charset ASCII = Charset.forName("ASCII");
+	private static final byte[] DEFAULT_LINE_BREAK_BYTES = { '\n' };
 	
+	private static final Radix4 STREAM = new Radix4(new Radix4Policy(true));
+	private static final Radix4 BLOCK = new Radix4(new Radix4Policy(false));
+
 	static final int[] decmap = new int[] {
 		0x5f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45,
 		0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55,
@@ -111,35 +116,173 @@ public final class Radix4 {
 		return (encmap[b & 0xff] & 0xc0) == 0;
 	}
 	
-	private static final Radix4Coding coding = new Radix4Streams(Radix4Policy.DEFAULT);
+	public static Radix4 stream() {
+		return STREAM;
+	}
+	
+	public static Radix4 block() {
+		return BLOCK;
+	}
+	
+	final int bufferSize;
+	final int lineLength;
+	final String lineBreak;
+	final boolean streaming;
+	final boolean terminated;
+	final boolean optimistic;
+	final char terminator;
+	
+	final byte[] lineBreakBytes;
+	final byte terminatorByte;
+
+	private Radix4Coding coding = null;
+	
+	Radix4(Radix4Policy policy) {
+		bufferSize = policy.bufferSize;
+		lineLength = policy.lineLength;
+		lineBreak  = policy.lineBreak;
+		streaming  = policy.streaming;
+		optimistic = policy.optimistic;
+		terminated = policy.terminated;
+		terminator = policy.terminator;
+		
+		// optimization - line break commonly left untouched - avoid creating many small byte arrays
+		lineBreakBytes = lineBreak.equals("\n") ? DEFAULT_LINE_BREAK_BYTES : lineBreak.getBytes(Radix4.ASCII);
+		terminatorByte = (byte) terminator;
+	}
+
+	public boolean isStreaming() {
+		return streaming;
+	}
+	
+	public boolean isOptimistic() {
+		return optimistic;
+	}
+	
+	/**
+	 * The number of characters between line breaks in encoded output or zero to
+	 * indicate that line-breaks should not be output.
+	 * 
+	 * @return the line length in ASCII characters, or zero
+	 */
+
+	public int getLineLength() {
+		return lineLength;
+	}
+	
+	/**
+	 * The characters inserted to form a line-break.
+	 * 
+	 * @return a string of one or more whitespace characters
+	 */
+
+	public String getLineBreak() {
+		return lineBreak;
+	}
 
 	/**
-	 * Obtain an object that can process Radix4 encoded data according to the
-	 * default policy. The policy controls the operating parameters of the
+	 * Whether encoded output should be terminated
+	 * 
+	 * @return true iff termination characters should be output
+	 */
+
+	public boolean isTerminated() {
+		return terminated;
+	}
+
+	/**
+	 * The character used to indicate termination
+	 * 
+	 * @return the termination character
+	 */
+
+	public char getTerminator() {
+		return terminator;
+	}
+	
+	public int getBufferSize() {
+		return bufferSize;
+	}
+
+	/**
+	 * Obtain an object that can process Radix4 encoded data according to this
+	 * Radix4 configuration which controls the operating parameters of the
 	 * encoding/decoding.
 	 * 
 	 * @return a {@link Radix4Coding} instance
 	 * @see Radix4Policy#DEFAULT
 	 */
 	
-	public static Radix4Coding use() {
-		return coding;
+	public Radix4Coding coding() {
+		if (coding != null) return coding;
+		return coding = streaming ? new Radix4Streams(this) : new Radix4Blocks(this);
+	}
+
+	public Radix4Policy configure() {
+		return new Radix4Policy(this);
 	}
 	
+	public long computeEncodedLength(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		long radixFreeLength = optimistic ? computeRadixFreeLength(bytes) : 0L;
+		return computeEncodedLength(bytes.length, radixFreeLength);
+	}
+
 	/**
-	 * Obtain an object that can process Radix4 encoded data according to the
-	 * supplied policy. The policy controls the operating parameters of the
-	 * encoding/decoding.
+	 * Computes the number of ASCII characters required to encode a specified
+	 * number of bytes. The character count includes the terminating sequence if
+	 * one is specified by the policy.
 	 * 
-	 * @return a {@link Radix4Coding} instance which uses the supplied policy
-	 * @see Radix4Policy
+	 * @param byteLength
+	 *            the number of bytes to be encoded
+	 * @return the number characters required to Radix4 encode the specified
+	 *         number of bytes
 	 */
 
-	public static Radix4Coding use(Radix4Policy policy) {
-		if (policy == null) throw new IllegalArgumentException("null policy");
-		if (policy == Radix4Policy.DEFAULT) return coding;
-		policy = policy.immutableCopy();
-		return policy.streaming ? new Radix4Streams(policy) : new Radix4Blocks(policy);
+	public long computeEncodedLength(long byteLength, long radixFreeLength) {
+		if (byteLength < 0) throw new IllegalArgumentException("negative byteLength");
+		if (radixFreeLength < 0) throw new IllegalArgumentException("negative radixFreeLength");
+		if (radixFreeLength > byteLength) throw new IllegalArgumentException("radixFreeLength exceeds byteLength");
+		
+		if (!optimistic) radixFreeLength = 0L;
+		// calculate length of radix encoded bytes
+		long radixedLength = byteLength - radixFreeLength;
+		long encodedLength = radixFreeLength + radixedLength / 3 * 4;
+
+		// adjust for remainder
+		switch ((int)(radixedLength % 3)) {
+		case 1 : encodedLength += 2; break;
+		case 2 : encodedLength += 3; break;
+		}
+		
+		// adjust for termination
+		if (terminated) encodedLength ++;
+		
+		// adjust for optimism
+		if (optimistic && (terminated || radixFreeLength < byteLength)) encodedLength ++;
+		
+		// adjust for line breaks
+		if (lineLength != Radix4Policy.NO_LINE_BREAK && encodedLength > 0) {
+			encodedLength += extraLineBreakLength(encodedLength);
+		}
+		
+		return encodedLength;
+	}
+	
+	int extraLineBreakLength(int encodedLength) {
+		return encodedLength == 0 ? 0 : ((encodedLength - 1) / lineLength) * lineBreak.length();
+	}
+	
+	long extraLineBreakLength(long encodedLength) {
+		return encodedLength == 0L ? 0L : ((encodedLength - 1) / lineLength) * lineBreak.length();
+	}
+	
+	private int computeRadixFreeLength(byte[] bytes) {
+		if (bytes == null) throw new IllegalArgumentException("null bytes");
+		for (int i = 0; i < bytes.length; i++) {
+			if (!Radix4.isFixedByte(bytes[i])) return i;
+		}
+		return bytes.length;
 	}
 
 }

@@ -24,17 +24,17 @@ import java.io.Reader;
 
 abstract class Radix4InputStream extends InputStream {
 
-	private final Radix4Policy policy;
+	private final Radix4 radix4;
 	private final int termChar;
 	private boolean radixFree;
 	private int i = 0;
 	private int j = 3;
 	private int[] bs = new int[3];
 	
-	Radix4InputStream(Radix4Policy policy) {
-		this.policy = policy;
-		termChar = policy.terminator;
-		radixFree = policy.optimistic;
+	Radix4InputStream(Radix4 radix4) {
+		this.radix4 = radix4;
+		termChar = radix4.terminator;
+		radixFree = radix4.optimistic;
 	}
 
 	@Override
@@ -44,7 +44,7 @@ abstract class Radix4InputStream extends InputStream {
 			int b = lookupNonWS();
 			switch (b) {
 			case -1: // eos
-				if (policy.terminated) throw new IOException("unexpected end of stream");
+				if (radix4.terminated) throw new IOException("unexpected end of stream");
 				j = 0;
 				break;
 			case -3: // terminator - end of radix free
@@ -58,8 +58,8 @@ abstract class Radix4InputStream extends InputStream {
 			int radix = lookupNonWS();
 			if (radix < 0) {
 				// check for premature eos
-				if (radix == -1 && policy.terminated) throw new IOException("unexpected end of stream");
-				if (radix == -3 && !policy.terminated) throw new IOException("unexpected terminator");
+				if (radix == -1 && radix4.terminated) throw new IOException("unexpected end of stream");
+				if (radix == -3 && !radix4.terminated) throw new IOException("unexpected terminator");
 				j = 0;
 				return -1;
 			}
@@ -105,8 +105,8 @@ abstract class Radix4InputStream extends InputStream {
 
 		private final InputStream in;
 
-		public ByteStream(Radix4Policy policy, InputStream in) {
-			super(policy);
+		public ByteStream(Radix4 radix4, InputStream in) {
+			super(radix4);
 			this.in = in;
 		}
 		
@@ -121,8 +121,8 @@ abstract class Radix4InputStream extends InputStream {
 
 		private final Reader reader;
 		
-		CharStream(Radix4Policy policy, Reader reader) {
-			super(policy);
+		CharStream(Radix4 radix4, Reader reader) {
+			super(radix4);
 			this.reader = reader;
 		}
 		
@@ -138,8 +138,8 @@ abstract class Radix4InputStream extends InputStream {
 		private final int length;
 		private int position;
 		
-		public Chars(Radix4Policy policy, CharSequence chars) {
-			super(policy);
+		public Chars(Radix4 radix4, CharSequence chars) {
+			super(radix4);
 			this.chars = chars;
 			length = chars.length();
 			position = 0;

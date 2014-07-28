@@ -22,10 +22,10 @@ import java.io.Writer;
 
 abstract class Radix4OutputStream extends OutputStream {
 
-	final Radix4Policy policy;
+	final Radix4 radix4;
 	// size of the buffer in bytes
 	final int bufferSize;
-	// accumulates the radices of byte tripples
+	// accumulates the radices of byte triples
 	private int radix = 0;
 	// position at which to write next byte into buffer
 	private int position = 0;
@@ -36,13 +36,12 @@ abstract class Radix4OutputStream extends OutputStream {
 	// whether a byte with a non-zero radix has yet to be encountered
 	private boolean radixFree;
 	
-	Radix4OutputStream(Radix4Policy policy) {
-		if (policy == null) throw new IllegalArgumentException("null policy");
-		this.policy = policy.immutableCopy();
+	Radix4OutputStream(Radix4 radix4) {
+		this.radix4 = radix4;
 		// set bufferSize to a multiple of 4
 		// this way we avoid having to move remaining bytes around inside the buffer
-		this.bufferSize = (policy.getBufferSize() + 3) & 0xfffffffc;
-		this.radixFree = policy.optimistic;
+		this.bufferSize = (radix4.bufferSize + 3) & 0xfffffffc;
+		this.radixFree = radix4.optimistic;
 	}
 
 	@Override
@@ -95,9 +94,9 @@ abstract class Radix4OutputStream extends OutputStream {
 		if (index != 0) {
 			bufferByte(position - index - 1, Radix4.chars[ radix ]);
 		}
-		if (policy.terminated) {
+		if (radix4.terminated) {
 			// must be space in buffer here because write() never leaves it full
-			bufferByte(position++, policy.terminatorByte);
+			bufferByte(position++, radix4.terminatorByte);
 			// if necessary, insert a second terminator to indicate end of radix free (ie. all) bytes
 			if (radixFree) {
 				flushBufferWithTerm();
@@ -117,14 +116,14 @@ abstract class Radix4OutputStream extends OutputStream {
 	private void flushBufferWithTerm() throws IOException {
 		// unlucky case - buffer is full, we need to flush twice
 		if (position == bufferSize) flushBuffer();
-		bufferByte(position++, policy.terminatorByte);
+		bufferByte(position++, radix4.terminatorByte);
 		flushBuffer();
 	}
 	
 	// always called with index equal to zero; unless closing - in which case we don't care that radix may be flushed incomplete
 	private void flushBuffer() throws IOException {
 		if (position == 0) return;
-		int lineLength = policy.lineLength;
+		int lineLength = radix4.lineLength;
 		if (lineLength == Radix4Policy.NO_LINE_BREAK) {
 			writeBuffer(0, position);
 		} else {
@@ -159,8 +158,8 @@ abstract class Radix4OutputStream extends OutputStream {
 		private final OutputStream out;
 		private final byte[] buffer;
 		
-		ByteStream(Radix4Policy policy, OutputStream out) {
-			super(policy);
+		ByteStream(Radix4 radix4, OutputStream out) {
+			super(radix4);
 			this.out = out;
 			buffer = new byte[bufferSize];
 		}
@@ -177,7 +176,7 @@ abstract class Radix4OutputStream extends OutputStream {
 
 		@Override
 		void writeLineBreak() throws IOException {
-			out.write(policy.lineBreakBytes);
+			out.write(radix4.lineBreakBytes);
 		}
 		
 		@Override
@@ -197,8 +196,8 @@ abstract class Radix4OutputStream extends OutputStream {
 		private final char[] buffer;
 		private final Writer writer;
 
-		CharStream(Radix4Policy policy, Writer writer) {
-			super(policy);
+		CharStream(Radix4 radix4, Writer writer) {
+			super(radix4);
 			this.writer = writer;
 			buffer = new char[bufferSize];
 		}
@@ -215,7 +214,7 @@ abstract class Radix4OutputStream extends OutputStream {
 		
 		@Override
 		void writeLineBreak() throws IOException {
-			writer.write(policy.lineBreak);
+			writer.write(radix4.lineBreak);
 		}
 
 		@Override
@@ -235,8 +234,8 @@ abstract class Radix4OutputStream extends OutputStream {
 		private final char[] buffer;
 		private final StringBuilder builder;
 
-		Chars(Radix4Policy policy, StringBuilder builder) {
-			super(policy);
+		Chars(Radix4 radix4, StringBuilder builder) {
+			super(radix4);
 			this.builder = builder;
 			buffer = new char[bufferSize];
 		}
@@ -253,7 +252,7 @@ abstract class Radix4OutputStream extends OutputStream {
 		
 		@Override
 		void writeLineBreak() throws IOException {
-			builder.append(policy.lineBreak);
+			builder.append(radix4.lineBreak);
 		}
 
 		@Override

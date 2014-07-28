@@ -37,51 +37,51 @@ import java.io.Writer;
 
 class Radix4Streams implements Radix4Coding {
 
-	private final Radix4Policy policy;
+	private final Radix4 radix4;
 	
-	Radix4Streams(Radix4Policy policy) {
-		this.policy = policy;
+	Radix4Streams(Radix4 radix4) {
+		this.radix4 = radix4;
 	}
 
 	@Override
-	public Radix4Policy getPolicy() {
-		return policy;
+	public Radix4 getRadix4() {
+		return radix4;
 	}
 
 	@Override
 	public OutputStream outputToStream(OutputStream out) {
 		if (out == null) throw new IllegalArgumentException("null out");
-		return new Radix4OutputStream.ByteStream(policy, out);
+		return new Radix4OutputStream.ByteStream(radix4, out);
 	}
 	
 	@Override
 	public OutputStream outputToWriter(Writer writer) {
 		if (writer == null) throw new IllegalArgumentException("null writer");
-		return new Radix4OutputStream.CharStream(policy, writer);
+		return new Radix4OutputStream.CharStream(radix4, writer);
 	}
 	
 	@Override
 	public OutputStream outputToBuilder(StringBuilder builder) {
 		if (builder == null) throw new IllegalArgumentException("null builder");
-		return new Radix4OutputStream.Chars(policy, builder);
+		return new Radix4OutputStream.Chars(radix4, builder);
 	}
 	
 	@Override
 	public InputStream inputFromStream(InputStream in) {
 		if (in == null) throw new IllegalArgumentException("null in");
-		return new Radix4InputStream.ByteStream(policy, in);
+		return new Radix4InputStream.ByteStream(radix4, in);
 	}
 	
 	@Override
 	public InputStream inputFromReader(Reader reader) {
 		if (reader == null) throw new IllegalArgumentException("null reader");
-		return new Radix4InputStream.CharStream(policy,reader);
+		return new Radix4InputStream.CharStream(radix4,reader);
 	}
 	
 	@Override
 	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new Radix4InputStream.Chars(policy,chars);
+		return new Radix4InputStream.Chars(radix4,chars);
 	}
 
 	@Override
@@ -89,7 +89,7 @@ class Radix4Streams implements Radix4Coding {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		StringBuilder builder = new StringBuilder();
 		try {
-			Radix4OutputStream out = new Radix4OutputStream.Chars(policy, builder);
+			Radix4OutputStream out = new Radix4OutputStream.Chars(radix4, builder);
 			out.write(bytes);
 			out.close();
 		} catch (IOException e) {
@@ -101,11 +101,11 @@ class Radix4Streams implements Radix4Coding {
 	
 	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
-		long encodedLength = policy.computeEncodedLength(bytes);
+		long encodedLength = radix4.computeEncodedLength(bytes);
 		if (encodedLength > Integer.MAX_VALUE) throw new IllegalArgumentException("bytes too long");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream((int) (encodedLength));
 		try {
-			Radix4OutputStream out = new Radix4OutputStream.ByteStream(policy, baos);
+			Radix4OutputStream out = new Radix4OutputStream.ByteStream(radix4, baos);
 			out.write(bytes);
 			out.close();
 		} catch (IOException e) {
@@ -119,7 +119,7 @@ class Radix4Streams implements Radix4Coding {
 	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.Chars(policy,chars);
+		Radix4InputStream in = new Radix4InputStream.Chars(radix4,chars);
 		transfer(in, out);
 		return out.toByteArray();
 	}
@@ -128,7 +128,7 @@ class Radix4Streams implements Radix4Coding {
 	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Radix4InputStream in = new Radix4InputStream.ByteStream(policy,new ByteArrayInputStream(bytes));
+		Radix4InputStream in = new Radix4InputStream.ByteStream(radix4,new ByteArrayInputStream(bytes));
 		transfer(in, out);
 		return out.toByteArray();
 	}

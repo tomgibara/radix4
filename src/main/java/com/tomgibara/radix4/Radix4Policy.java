@@ -34,57 +34,42 @@ public final class Radix4Policy implements Serializable {
 
 	private static final long serialVersionUID = 3743746958617647872L;
 
-	/**
-	 * A default policy instance. The default policy declares that no
-	 * line-breaks and no terminating characters will be written (though they
-	 * may still be read).
-	 */
-	
-	public static final Radix4Policy DEFAULT = new Radix4Policy().immutableCopy();
+	private static final int    DEFAULT_BUFFER_SIZE =   64;
+	private static final String DEFAULT_LINE_BREAK  = "\n";
+	private static final char   DEFAULT_TERMINATOR  =  '.';
 	
 	static final int NO_LINE_BREAK = 0;
-	private static final int DEFAULT_BUFFER_SIZE = 64;
-	private static final byte[] LF_BYTES = { '\n' };
 	
-	private final boolean mutable;
 	int bufferSize;
 	int lineLength;
 	String lineBreak;
-	byte[] lineBreakBytes;
 	boolean streaming;
 	boolean terminated;
 	boolean optimistic;
 	char terminator;
-	byte terminatorByte;
 	
 	/**
 	 * Creates a new mutable policy with default settings.
 	 */
 	
-	public Radix4Policy() {
-		mutable = true;
+	Radix4Policy(boolean streaming) {
 		bufferSize = DEFAULT_BUFFER_SIZE;
 		lineLength = NO_LINE_BREAK;
-		lineBreak = "\n";
-		lineBreakBytes = LF_BYTES;
-		streaming = true;
+		lineBreak = DEFAULT_LINE_BREAK;
+		this.streaming = streaming;
 		optimistic = true;
 		terminated = false;
-		terminator = '.';
-		terminatorByte = '.';
+		terminator = DEFAULT_TERMINATOR;
 	}
 	
-	private Radix4Policy(Radix4Policy that, boolean mutable) {
-		this.mutable = mutable;
-		this.bufferSize = that.bufferSize;
-		this.lineLength = that.lineLength;
-		this.lineBreak = that.lineBreak;
-		this.lineBreakBytes = that.lineBreakBytes;
-		this.streaming = that.streaming;
-		this.terminated = that.terminated;
-		this.optimistic = that.optimistic;
-		this.terminator = that.terminator;
-		this.terminatorByte = that.terminatorByte;
+	Radix4Policy(Radix4 radix4) {
+		bufferSize = radix4.bufferSize;
+		lineLength = radix4.lineLength;
+		lineBreak = radix4.lineBreak;
+		streaming = radix4.streaming;
+		optimistic = radix4.optimistic;
+		terminated = radix4.terminated;
+		terminator = radix4.terminator;
 	}
 	
 	/**
@@ -99,9 +84,10 @@ public final class Radix4Policy implements Serializable {
 	 *            indicate the default size.
 	 */
 	
-	public void setBufferSize(int bufferSize) {
+	public Radix4Policy setBufferSize(int bufferSize) {
 		if (bufferSize < 1) bufferSize = DEFAULT_BUFFER_SIZE;
 		this.bufferSize = bufferSize;
+		return this;
 	}
 	
 	/**
@@ -113,22 +99,14 @@ public final class Radix4Policy implements Serializable {
 		return bufferSize;
 	}
 	
-	public void setStreaming(boolean streaming) {
-		checkMutable();
+	public Radix4Policy setStreaming(boolean streaming) {
 		this.streaming = streaming;
+		return this;
 	}
 	
-	public boolean isStreaming() {
-		return streaming;
-	}
-	
-	public void setOptimistic(boolean optimistic) {
-		checkMutable();
+	public Radix4Policy setOptimistic(boolean optimistic) {
 		this.optimistic = optimistic;
-	}
-	
-	public boolean isOptimistic() {
-		return optimistic;
+		return this;
 	}
 	
 	/**
@@ -139,11 +117,12 @@ public final class Radix4Policy implements Serializable {
 	 * 
 	 * @param lineLength
 	 *            the length of line into which encoded output should be split.
+	 * @return 
 	 */
 	
-	public void setLineLength(int lineLength) {
-		checkMutable();
+	public Radix4Policy setLineLength(int lineLength) {
 		this.lineLength = lineLength < 1 ? NO_LINE_BREAK : lineLength;
+		return this;
 	}
 
 	/**
@@ -154,13 +133,13 @@ public final class Radix4Policy implements Serializable {
 	 * By default, the line breaks consist of a single character '\n'.
 	 * 
 	 * @param lineBreak
+	 * @return 
 	 * @throws IllegalArgumentException
 	 *             if the supplied string is null or empty or contains
 	 *             non-whitespace characters.
 	 */
 	
-	public void setLineBreak(String lineBreak) {
-		checkMutable();
+	public Radix4Policy setLineBreak(String lineBreak) {
 		if (lineBreak == null) throw new IllegalArgumentException("null lineBreak");
 		int length = lineBreak.length();
 		if (length == 0) throw new IllegalArgumentException("empty lineBreak");
@@ -169,7 +148,7 @@ public final class Radix4Policy implements Serializable {
 			if ( !Radix4.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
 		}
 		this.lineBreak = lineBreak;
-		lineBreakBytes = lineBreak.getBytes(Radix4.ASCII);
+		return this;
 	}
 
 	/**
@@ -179,11 +158,12 @@ public final class Radix4Policy implements Serializable {
 	 * 
 	 * @param terminated
 	 *            whether the output should be terminated
+	 * @return 
 	 */
 
-	public void setTerminated(boolean terminated) {
-		checkMutable();
+	public Radix4Policy setTerminated(boolean terminated) {
 		this.terminated = terminated;
+		return this;
 	}
 
 	/**
@@ -193,134 +173,20 @@ public final class Radix4Policy implements Serializable {
 	 * 
 	 * @param terminator
 	 *            a termination character
+	 * @return 
 	 * @throws IllegalArgumentException
 	 *             if the termination character might appear in an encoding, or
 	 *             as a whitespace
 	 */
 	
-	public void setTerminator(char terminator) {
+	public Radix4Policy setTerminator(char terminator) {
 		if (!Radix4.isTerminator(terminator)) throw new IllegalArgumentException("invalid terminator");
 		this.terminator = terminator;
-		this.terminatorByte = (byte) terminator;
+		return this;
 	}
 
-	/**
-	 * The number of characters between line breaks in encoded output or zero to
-	 * indicate that line-breaks should not be output.
-	 * 
-	 * @return the line length in ASCII characters, or zero
-	 */
-
-	public int getLineLength() {
-		return lineLength;
-	}
-	
-	/**
-	 * The characters inserted to form a line-break.
-	 * 
-	 * @return a string of one or more whitespace characters
-	 */
-
-	public String getLineBreak() {
-		return lineBreak;
-	}
-
-	/**
-	 * Whether encoded output should be terminated
-	 * 
-	 * @return true iff termination characters should be output
-	 */
-
-	public boolean isTerminated() {
-		return terminated;
-	}
-
-	/**
-	 * The character used to indicate termination
-	 * 
-	 * @return the termination character
-	 */
-
-	public char getTerminator() {
-		return terminator;
-	}
-
-	/**
-	 * Creates a new policy which is identical to this policy and mutable.
-	 * 
-	 * @return a mutable copy of this policy
-	 */
-
-	public Radix4Policy mutableCopy() {
-		return new Radix4Policy(this, true);
-	}
-	
-	/**
-	 * Returns a policy which is identical to this policy and immutable. This
-	 * may or may not result in a new policy object being created.
-	 * 
-	 * @return an immutable copy of this policy
-	 */
-
-	public Radix4Policy immutableCopy() {
-		return mutable ? new Radix4Policy(this, false) : this;
-	}
-
-	/**
-	 * Whether this policy is mutable.
-	 * 
-	 * @return true iff this policy is mutable
-	 */
-
-	public boolean isMutable() {
-		return mutable;
-	}
-	
-	public long computeEncodedLength(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long radixFreeLength = optimistic ? computeRadixFreeLength(bytes) : 0L;
-		return computeEncodedLength(bytes.length, radixFreeLength);
-	}
-
-	/**
-	 * Computes the number of ASCII characters required to encode a specified
-	 * number of bytes. The character count includes the terminating sequence if
-	 * one is specified by the policy.
-	 * 
-	 * @param byteLength
-	 *            the number of bytes to be encoded
-	 * @return the number characters required to Radix4 encode the specified
-	 *         number of bytes
-	 */
-
-	public long computeEncodedLength(long byteLength, long radixFreeLength) {
-		if (byteLength < 0) throw new IllegalArgumentException("negative byteLength");
-		if (radixFreeLength < 0) throw new IllegalArgumentException("negative radixFreeLength");
-		if (radixFreeLength > byteLength) throw new IllegalArgumentException("radixFreeLength exceeds byteLength");
-		
-		if (!optimistic) radixFreeLength = 0L;
-		// calculate length of radix encoded bytes
-		long radixedLength = byteLength - radixFreeLength;
-		long encodedLength = radixFreeLength + radixedLength / 3 * 4;
-
-		// adjust for remainder
-		switch ((int)(radixedLength % 3)) {
-		case 1 : encodedLength += 2; break;
-		case 2 : encodedLength += 3; break;
-		}
-		
-		// adjust for termination
-		if (terminated) encodedLength ++;
-		
-		// adjust for optimism
-		if (optimistic && (terminated || radixFreeLength < byteLength)) encodedLength ++;
-		
-		// adjust for line breaks
-		if (lineLength != NO_LINE_BREAK && encodedLength > 0) {
-			encodedLength += extraLineBreakLength(encodedLength);
-		}
-		
-		return encodedLength;
+	public Radix4 use() {
+		return new Radix4(this);
 	}
 	
 	@Override
@@ -342,24 +208,4 @@ public final class Radix4Policy implements Serializable {
 		return lineLength ^ bufferSize * 31 ^ lineBreak.hashCode() ^ terminator;
 	}
 	
-	int extraLineBreakLength(int encodedLength) {
-		return encodedLength == 0 ? 0 : ((encodedLength - 1) / lineLength) * lineBreakBytes.length;
-	}
-	
-	long extraLineBreakLength(long encodedLength) {
-		return encodedLength == 0L ? 0L : ((encodedLength - 1) / lineLength) * lineBreakBytes.length;
-	}
-	
-	private void checkMutable() {
-		if (!mutable) throw new IllegalStateException("immutable policy");
-	}
-
-	private int computeRadixFreeLength(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		for (int i = 0; i < bytes.length; i++) {
-			if (!Radix4.isFixedByte(bytes[i])) return i;
-		}
-		return bytes.length;
-	}
-
 }

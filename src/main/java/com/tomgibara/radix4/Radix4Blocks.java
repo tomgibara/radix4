@@ -37,15 +37,15 @@ import java.io.Writer;
 
 class Radix4Blocks implements Radix4Coding {
 
-	private final Radix4Policy policy;
+	private final Radix4 radix4;
 	
-	Radix4Blocks(Radix4Policy policy) {
-		this.policy = policy;
+	Radix4Blocks(Radix4 radix4) {
+		this.radix4 = radix4;
 	}
 
 	@Override
-	public Radix4Policy getPolicy() {
-		return policy;
+	public Radix4 getRadix4() {
+		return radix4;
 	}
 	
 	@Override
@@ -54,7 +54,7 @@ class Radix4Blocks implements Radix4Coding {
 		return new BlockOutputStream() {
 			@Override
 			void flush(byte[] bytes) throws IOException {
-				out.write( new Radix4BlockEncoder.BytesEncoder(policy).encode(bytes) );
+				out.write( new Radix4BlockEncoder.BytesEncoder(radix4).encode(bytes) );
 			}
 		};
 	}
@@ -65,7 +65,7 @@ class Radix4Blocks implements Radix4Coding {
 		return new BlockOutputStream() {
 			@Override
 			void flush(byte[] bytes) throws IOException {
-				builder.append( new Radix4BlockEncoder.CharsEncoder(policy).encode(bytes) );
+				builder.append( new Radix4BlockEncoder.CharsEncoder(radix4).encode(bytes) );
 			}
 		};
 	}
@@ -76,7 +76,7 @@ class Radix4Blocks implements Radix4Coding {
 		return new BlockOutputStream() {
 			@Override
 			void flush(byte[] bytes) throws IOException {
-				writer.write( new Radix4BlockEncoder.CharsEncoder(policy).encode(bytes) );
+				writer.write( new Radix4BlockEncoder.CharsEncoder(radix4).encode(bytes) );
 			}
 		};
 	}
@@ -89,9 +89,9 @@ class Radix4Blocks implements Radix4Coding {
 			byte[] slurp() throws IOException {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				byte[] bytes;
-				if (policy.terminated) {
-					boolean seekingFirstRadix = policy.optimistic;
-					int term = policy.terminator;
+				if (radix4.terminated) {
+					boolean seekingFirstRadix = radix4.optimistic;
+					int term = radix4.terminator;
 					while (true) {
 						int b = in.read();
 						if (b == -1) throw new IOException("Unexpected end of stream");
@@ -106,7 +106,7 @@ class Radix4Blocks implements Radix4Coding {
 						}
 					}
 				} else {
-					byte[] buffer = new byte[policy.bufferSize];
+					byte[] buffer = new byte[radix4.bufferSize];
 					while (true) {
 						int r = in.read(buffer);
 						if (r == -1) break;
@@ -115,7 +115,7 @@ class Radix4Blocks implements Radix4Coding {
 					}
 				}
 				bytes = out.toByteArray();
-				return new Radix4BlockDecoder.BytesDecoder(policy, bytes, false).decode();
+				return new Radix4BlockDecoder.BytesDecoder(radix4, bytes, false).decode();
 			}
 			
 			private int stripWhitespace(byte[] buffer, int length) {
@@ -138,9 +138,9 @@ class Radix4Blocks implements Radix4Coding {
 			@Override
 			byte[] slurp() throws IOException {
 				StringBuilder sb = new StringBuilder();
-				if (policy.terminated) {
-					boolean seekingFirstRadix = policy.optimistic;
-					int term = policy.terminator;
+				if (radix4.terminated) {
+					boolean seekingFirstRadix = radix4.optimistic;
+					int term = radix4.terminator;
 					while (true) {
 						int c = reader.read();
 						if (c == -1) throw new IOException("Unexpected end of stream");
@@ -155,7 +155,7 @@ class Radix4Blocks implements Radix4Coding {
 						}
 					}
 				} else {
-					char[] buffer = new char[policy.bufferSize];
+					char[] buffer = new char[radix4.bufferSize];
 					while (true) {
 						int r = reader.read(buffer);
 						if (r == -1) break;
@@ -163,7 +163,7 @@ class Radix4Blocks implements Radix4Coding {
 						sb.append(buffer, 0, r);
 					}
 				}
-				return new Radix4BlockDecoder.CharsDecoder(policy, sb, false).decode();
+				return new Radix4BlockDecoder.CharsDecoder(radix4, sb, false).decode();
 			}
 			
 			private int stripWhitespace(char[] buffer, int length) {
@@ -182,31 +182,31 @@ class Radix4Blocks implements Radix4Coding {
 	@Override
 	public InputStream inputFromChars(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new ByteArrayInputStream( new Radix4BlockDecoder.CharsDecoder(policy, chars, true).decode() );
+		return new ByteArrayInputStream( new Radix4BlockDecoder.CharsDecoder(radix4, chars, true).decode() );
 	}
 	
 	@Override
 	public String encodeToString(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		return new Radix4BlockEncoder.CharsEncoder(policy).encode(bytes);
+		return new Radix4BlockEncoder.CharsEncoder(radix4).encode(bytes);
 	}
 
 	@Override
 	public byte[] encodeToBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		return new Radix4BlockEncoder.BytesEncoder(policy).encode(bytes);
+		return new Radix4BlockEncoder.BytesEncoder(radix4).encode(bytes);
 	}
 
 	@Override
 	public byte[] decodeFromString(CharSequence chars) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
-		return new Radix4BlockDecoder.CharsDecoder(policy, chars, true).decode();
+		return new Radix4BlockDecoder.CharsDecoder(radix4, chars, true).decode();
 	}
 
 	@Override
 	public byte[] decodeFromBytes(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		return new Radix4BlockDecoder.BytesDecoder(policy, bytes, true).decode();
+		return new Radix4BlockDecoder.BytesDecoder(radix4, bytes, true).decode();
 	}
 
 	//TODO could replace with a more efficient implementation that avoids byte[] copy
