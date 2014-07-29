@@ -21,6 +21,9 @@ import java.io.Serializable;
 /**
  * Allows the encoding and decoding of a {@link Radix4} to be configured.
  * 
+ * Unless otherwise indicated, passing a null parameter to any method of this
+ * class will raise an {@link IllegalArgumentException}.
+ * 
  * @author tomgibara
  * 
  */
@@ -73,6 +76,7 @@ public final class Radix4Config implements Serializable {
 	 * @param bufferSize
 	 *            the buffer size to use in bytes or a non-positive number to
 	 *            indicate the default size.
+	 * @return the modified configuration
 	 */
 	
 	public Radix4Config setBufferSize(int bufferSize) {
@@ -82,19 +86,27 @@ public final class Radix4Config implements Serializable {
 	}
 	
 	/**
-	 * The number of bytes used to buffer stream operations
-	 * @return the size in bytes.
+	 * Specifies whether Radix4 stream formatting should be used.
+	 * 
+	 * @param streaming
+	 *            true if data is to be coded for streaming, false otherwise
+	 * @return the modified configuration
 	 */
 
-	public int getBufferSize() {
-		return bufferSize;
-	}
-	
 	public Radix4Config setStreaming(boolean streaming) {
 		this.streaming = streaming;
 		return this;
 	}
 	
+	/**
+	 * Specifies whether Radix4 encoding should be optimistic about the absence
+	 * of non-zero radices.
+	 * 
+	 * @param streaming
+	 *            true iff data should initially be assumed to be radix-free
+	 * @return the modified configuration
+	 */
+
 	public Radix4Config setOptimistic(boolean optimistic) {
 		this.optimistic = optimistic;
 		return this;
@@ -108,7 +120,7 @@ public final class Radix4Config implements Serializable {
 	 * 
 	 * @param lineLength
 	 *            the length of line into which encoded output should be split.
-	 * @return 
+	 * @return the modified configuration
 	 */
 	
 	public Radix4Config setLineLength(int lineLength) {
@@ -124,7 +136,7 @@ public final class Radix4Config implements Serializable {
 	 * By default, the line breaks consist of a single character '\n'.
 	 * 
 	 * @param lineBreak
-	 * @return 
+	 * @return the modified configuration
 	 * @throws IllegalArgumentException
 	 *             if the supplied string is null or empty or contains
 	 *             non-whitespace characters.
@@ -149,7 +161,7 @@ public final class Radix4Config implements Serializable {
 	 * 
 	 * @param terminated
 	 *            whether the output should be terminated
-	 * @return 
+	 * @return the modified configuration
 	 */
 
 	public Radix4Config setTerminated(boolean terminated) {
@@ -164,7 +176,7 @@ public final class Radix4Config implements Serializable {
 	 * 
 	 * @param terminator
 	 *            a termination character
-	 * @return 
+	 * @return the modified configuration
 	 * @throws IllegalArgumentException
 	 *             if the termination character might appear in an encoding, or
 	 *             as a whitespace
@@ -175,6 +187,14 @@ public final class Radix4Config implements Serializable {
 		this.terminator = terminator;
 		return this;
 	}
+	
+	/**
+	 * Create a new Radix4 definition using the current configuration. After
+	 * calling this method, the configuration may continue to be changed, and
+	 * new definitions created.
+	 * 
+	 * @return a Radix4 coding definition using based on this configuration
+	 */
 
 	public Radix4 use() {
 		return new Radix4(this);

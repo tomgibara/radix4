@@ -20,11 +20,17 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 /**
- * It is the entry-point for accessing the functions provided by this package.
- * Instances of this class are safe for concurrent use by multiple threads.
+ * Defines a Radix4 encoding; various encodings are possible. The definitions
+ * provided by this class are immutable and safe for concurrent use by multiple
+ * threads.
  * 
- * Unless otherwise indicated, passing a null parameter to any method of this
- * class will raise an {@link IllegalArgumentException}.
+ * This class is the entry-point for accessing the functions provided by this
+ * package: the static methods {@link #stream()} and {@link #block()} can be
+ * called to obtain standard Radix4 codings in streaming and block formats
+ * respectively.
+ * 
+ * Alternative codings can be obtained by calling {@link #configure()} on a
+ * standard instance.
  * 
  * @author tomgibara
  * 
@@ -116,9 +122,21 @@ public final class Radix4 {
 		return (encmap[b & 0xff] & 0xc0) == 0;
 	}
 	
+	/**
+	 * The standard Radix4 coding definition for streaming data.
+	 * 
+	 * @return the standard stream definition
+	 */
+	
 	public static Radix4 stream() {
 		return STREAM;
 	}
+	
+	/**
+	 * The standard Radix4 coding definition for block-encoded data.
+	 * 
+	 * @return the standard block definition
+	 */
 	
 	public static Radix4 block() {
 		return BLOCK;
@@ -151,10 +169,25 @@ public final class Radix4 {
 		terminatorByte = (byte) terminator;
 	}
 
+	/**
+	 * Whether this Radix4 coding will organize coded data so that it can be
+	 * streamed (true). Or whether coded data is structured may be structured as
+	 * an unstreamable block (false).
+	 * 
+	 * @return true iff stream-formatting is used when coding data
+	 */
+
 	public boolean isStreaming() {
 		return streaming;
 	}
-	
+
+	/**
+	 * Whether this Radix4 encoding/decoding will defer writing/reading radices
+	 * until a non-zero radix is encountered.
+	 * 
+	 * @return whether the coding optimistically defers recording radices
+	 */
+
 	public boolean isOptimistic() {
 		return optimistic;
 	}
@@ -181,7 +214,7 @@ public final class Radix4 {
 	}
 
 	/**
-	 * Whether encoded output should be terminated
+	 * Whether encoded output should be explicitly terminated.
 	 * 
 	 * @return true iff termination characters should be output
 	 */
@@ -191,7 +224,7 @@ public final class Radix4 {
 	}
 
 	/**
-	 * The character used to indicate termination
+	 * The character used to indicate termination.
 	 * 
 	 * @return the termination character
 	 */
@@ -199,6 +232,12 @@ public final class Radix4 {
 	public char getTerminator() {
 		return terminator;
 	}
+
+	/**
+	 * The number of bytes used to buffer stream operations.
+	 * 
+	 * @return the buffer size in bytes, always positive
+	 */
 	
 	public int getBufferSize() {
 		return bufferSize;
@@ -217,11 +256,28 @@ public final class Radix4 {
 		if (coding != null) return coding;
 		return coding = streaming ? new Radix4Streams(this) : new Radix4Blocks(this);
 	}
+	
+	/**
+	 * Creates a new mutable Radix4 configuration that can be used to create a
+	 * modified definition. The configuration returned matches will be
+	 * initialized to match this definition.
+	 * 
+	 * @return an object for configuring a new Radix4 coding.
+	 */
 
 	public Radix4Config configure() {
 		return new Radix4Config(this);
 	}
 	
+	/**
+	 * Computes the number of ASCII characters required to encode the supplied
+	 * bytes.
+	 * 
+	 * @param bytes
+	 *            the bytes to be encoded.
+	 * @return the length of this Radix4 encoding in bytes
+	 */
+
 	public long computeEncodedLength(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
 		long radixFreeLength = optimistic ? computeRadixFreeLength(bytes) : 0L;
@@ -233,8 +289,14 @@ public final class Radix4 {
 	 * number of bytes. The character count includes the terminating sequence if
 	 * one is specified.
 	 * 
+	 * The number of radix-free bytes present at the start of the byte sequence
+	 * need only be supplied in the case where optimistic coding is used, in all
+	 * other cases zero may be supplied for this parameter.
+	 * 
 	 * @param byteLength
 	 *            the number of bytes to be encoded
+	 * @param radixFreeLength
+	 *            the number of leading radix-free bytes
 	 * @return the number characters required to Radix4 encode the specified
 	 *         number of bytes
 	 */
