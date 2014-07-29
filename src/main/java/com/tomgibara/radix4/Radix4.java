@@ -16,6 +16,8 @@
  */
 package com.tomgibara.radix4;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -36,10 +38,12 @@ import java.util.Arrays;
  * 
  */
 
-public final class Radix4 {
+public final class Radix4 implements Serializable {
 
 	// static fields
 	
+	private static final long serialVersionUID = -3598867342181148501L;
+
 	// note order dependent - must be assigned before BLOCK & STREAM construction
 	static final Charset ASCII = Charset.forName("ASCII");
 	private static final byte[] DEFAULT_LINE_BREAK_BYTES = { '\n' };
@@ -342,7 +346,7 @@ public final class Radix4 {
 		
 		return encodedLength;
 	}
-	
+
 	// object methods
 	
 	/**
@@ -400,4 +404,25 @@ public final class Radix4 {
 		return bytes.length;
 	}
 
+	// serialization
+	
+	private Object writeReplace() throws ObjectStreamException {
+		return new Serial(this);
+	}
+	
+	private static class Serial implements Serializable {
+		
+		private static final long serialVersionUID = 3209555487248076351L;
+
+		private final Radix4Config config;
+		
+		Serial(Radix4 radix4) {
+			config = new Radix4Config(radix4);
+		}
+		
+		private Object readResolve() throws ObjectStreamException {
+			return new Radix4(config);
+		}
+		
+	}
 }
