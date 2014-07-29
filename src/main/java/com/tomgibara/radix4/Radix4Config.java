@@ -200,6 +200,11 @@ public final class Radix4Config implements Serializable {
 		return new Radix4(this);
 	}
 	
+	/**
+	 * Two configurations are equal if all parameters of the configuration are
+	 * identical.
+	 */
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) return true;
@@ -207,6 +212,7 @@ public final class Radix4Config implements Serializable {
 		Radix4Config that = (Radix4Config) obj;
 		if (this.lineLength != that.lineLength) return false;
 		if (!this.lineBreak.equals(that.lineBreak)) return false;
+		if (this.streaming != that.streaming) return false;
 		if (this.terminated != that.terminated) return false;
 		if (this.optimistic != that.optimistic) return false;
 		if (this.terminator != that.terminator) return false;
@@ -216,7 +222,22 @@ public final class Radix4Config implements Serializable {
 	
 	@Override
 	public int hashCode() {
-		return lineLength ^ bufferSize * 31 ^ lineBreak.hashCode() ^ terminator;
+		int hash = 0;
+		hash += lineLength;
+		hash *= 31;
+		hash += bufferSize;
+		hash *= 31;
+		hash += lineBreak.hashCode();
+		hash *= 31;
+		hash += terminator;
+		hash *= 31;
+		if (streaming) hash += 1;
+		hash *= 31;
+		if (optimistic) hash += 1;
+		hash *= 31;
+		if (terminated) hash += 1;
+		hash *= 31;
+		return hash;
 	}
 	
 }
