@@ -38,6 +38,8 @@ import java.util.Arrays;
 
 public final class Radix4 {
 
+	// static fields
+	
 	// note order dependent - must be assigned before BLOCK & STREAM construction
 	static final Charset ASCII = Charset.forName("ASCII");
 	private static final byte[] DEFAULT_LINE_BREAK_BYTES = { '\n' };
@@ -105,6 +107,8 @@ public final class Radix4 {
 		}
 	}
 	
+	// static methods
+	
 	static int lookupByte(int c) {
 		return c >=0 && c < 256 ? bytes[c] : -1;
 	}
@@ -142,6 +146,8 @@ public final class Radix4 {
 		return BLOCK;
 	}
 	
+	// fields
+	
 	final int bufferSize;
 	final int lineLength;
 	final String lineBreak;
@@ -154,6 +160,8 @@ public final class Radix4 {
 	final byte terminatorByte;
 
 	private Radix4Coding coding = null;
+	
+	// constructors
 	
 	Radix4(Radix4Config config) {
 		bufferSize = config.bufferSize;
@@ -168,6 +176,8 @@ public final class Radix4 {
 		lineBreakBytes = lineBreak.equals("\n") ? DEFAULT_LINE_BREAK_BYTES : lineBreak.getBytes(Radix4.ASCII);
 		terminatorByte = (byte) terminator;
 	}
+	
+	// public accessors
 
 	/**
 	 * Whether this Radix4 coding will organize coded data so that it can be
@@ -242,6 +252,8 @@ public final class Radix4 {
 	public int getBufferSize() {
 		return bufferSize;
 	}
+	
+	// public methods
 
 	/**
 	 * Obtain an object that can process Radix4 encoded data according to this
@@ -331,6 +343,45 @@ public final class Radix4 {
 		return encodedLength;
 	}
 	
+	// object methods
+	
+	/**
+	 * Two Radix4 definitions are equal if they produce identical codings for
+	 * all inputs.
+	 */
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) return true;
+		if (!(obj instanceof Radix4)) return false;
+		Radix4 that = (Radix4) obj;
+		if (this.streaming != that.streaming) return false;
+		if (this.optimistic != that.optimistic) return false;
+		if (this.terminated != that.terminated) return false;
+		if (this.lineLength != that.lineLength) return false;
+		if (lineLength != Radix4Config.NO_LINE_BREAK && !this.lineBreak.equals(that.lineBreak)) return false;
+		if ((terminated || optimistic) && this.terminator != that.terminator) return false;
+		return true;
+	}
+	
+	@Override
+	public int hashCode() {
+		int hash = 0;
+		hash += lineLength;
+		hash *= 31;
+		hash += terminator;
+		hash *= 31;
+		if (streaming) hash += 1;
+		hash *= 31;
+		if (optimistic) hash += 1;
+		hash *= 31;
+		if (terminated) hash += 1;
+		hash *= 31;
+		return hash;
+	}
+	
+	// package scoped methods
+	
 	int extraLineBreakLength(int encodedLength) {
 		return encodedLength == 0 ? 0 : ((encodedLength - 1) / lineLength) * lineBreak.length();
 	}
@@ -338,6 +389,8 @@ public final class Radix4 {
 	long extraLineBreakLength(long encodedLength) {
 		return encodedLength == 0L ? 0L : ((encodedLength - 1) / lineLength) * lineBreak.length();
 	}
+	
+	// private helper methods
 	
 	private int computeRadixFreeLength(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
