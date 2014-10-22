@@ -19,6 +19,8 @@ package com.tomgibara.radix4;
 abstract class Radix4BlockEncoder<T> {
 
 	final Radix4 radix4;
+	private final byte[] chars;
+	private final int[] encmap;;
 	private final boolean breakLines;
 	final int lineBreakLength;
 	private final int lineLength;
@@ -26,6 +28,8 @@ abstract class Radix4BlockEncoder<T> {
 	
 	Radix4BlockEncoder(Radix4 radix4) {
 		this.radix4 = radix4;
+		chars = radix4.mapping.chars;
+		encmap = radix4.mapping.encmap;
 		breakLines = radix4.lineLength != Radix4Config.NO_LINE_BREAK;
 		lineBreakLength = radix4.lineBreakBytes.length;
 		lineLength = radix4.lineLength;
@@ -48,11 +52,11 @@ abstract class Radix4BlockEncoder<T> {
 			while (i < bytes.length) {
 				int b = bytes[i];
 				// map the byte
-				b = Radix4.encmap[b & 0xff];
+				b = encmap[b & 0xff];
 				int c = b & 0x3f;
 				if (c == b) {
 					// still radix free
-					position = writeWithBreaks(position, Radix4.chars[ c ]);
+					position = writeWithBreaks(position, chars[ c ]);
 					i++;
 				} else {
 					// no longer radix free
@@ -84,20 +88,20 @@ abstract class Radix4BlockEncoder<T> {
 			while (i < bytes.length) {
 				int b = bytes[i++];
 				// map the byte
-				b = Radix4.encmap[b & 0xff];
+				b = encmap[b & 0xff];
 				int c = b & 0x3f;
-				position = writeWithBreaks(position, Radix4.chars[ c ]);
+				position = writeWithBreaks(position, chars[ c ]);
 				radix |= (b & 0xc0) >> ((++index) << 1);
 				// write a complete radix
 				if (index == 3) {
-					offset = writeWithBreaks(offset, Radix4.chars[ radix ]);
+					offset = writeWithBreaks(offset, chars[ radix ]);
 					index = 0;
 					radix = 0;
 				}
 			}
 			// output any remaining radix part
 			if (index != 0) {
-				offset = writeWithBreaks(offset, Radix4.chars[ radix ]);
+				offset = writeWithBreaks(offset, chars[ radix ]);
 			}
 		}
 

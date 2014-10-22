@@ -16,8 +16,6 @@
  */
 package com.tomgibara.radix4;
 
-import static com.tomgibara.radix4.Radix4.lookupByte;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -25,6 +23,8 @@ import java.io.Reader;
 abstract class Radix4InputStream extends InputStream {
 
 	private final Radix4 radix4;
+	private final Radix4Mapping mapping;
+	private final int[] decmap;
 	private final int termChar;
 	private boolean radixFree;
 	private int i = 0;
@@ -33,6 +33,8 @@ abstract class Radix4InputStream extends InputStream {
 	
 	Radix4InputStream(Radix4 radix4) {
 		this.radix4 = radix4;
+		mapping = radix4.mapping;
+		decmap = mapping.decmap;
 		termChar = radix4.terminator;
 		radixFree = radix4.optimistic;
 	}
@@ -51,7 +53,7 @@ abstract class Radix4InputStream extends InputStream {
 				radixFree = false;
 				break; // falling through to decoding
 				default: // just unmap and return
-					return Radix4.decmap[b];
+					return decmap[b];
 			}
 		}
 		if (i == 0) {
@@ -84,7 +86,7 @@ abstract class Radix4InputStream extends InputStream {
 		int b = bs[i];
 		if (++i == 3) i = 0;
 		// unmap the byte
-		return Radix4.decmap[b];
+		return decmap[b];
 	}
 
 	abstract int readChar() throws IOException;
@@ -94,7 +96,7 @@ abstract class Radix4InputStream extends InputStream {
 			int c = readChar();
 			if (c == -1) return -1;
 			if (c == termChar) return -3;
-			int b = lookupByte(c);
+			int b = mapping.lookupByte(c);
 			if (b == -1) throw new IOException("invalid character");
 			if (b == -2) continue;
 			return b;

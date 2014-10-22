@@ -23,6 +23,10 @@ import java.io.Writer;
 abstract class Radix4OutputStream extends OutputStream {
 
 	final Radix4 radix4;
+	// the encoding map
+	final int[] encmap;
+	// the encoding character set
+	final byte[] chars;
 	// size of the buffer in bytes
 	final int bufferSize;
 	// accumulates the radices of byte triples
@@ -38,6 +42,8 @@ abstract class Radix4OutputStream extends OutputStream {
 	
 	Radix4OutputStream(Radix4 radix4) {
 		this.radix4 = radix4;
+		this.encmap = radix4.mapping.encmap;
+		this.chars = radix4.mapping.chars;
 		// set bufferSize to a multiple of 4
 		// this way we avoid having to move remaining bytes around inside the buffer
 		this.bufferSize = (radix4.bufferSize + 3) & 0xfffffffc;
@@ -49,12 +55,12 @@ abstract class Radix4OutputStream extends OutputStream {
 		// watch for close
 		if (index == 3) throw new IOException("stream closed");
 		// map the byte
-		b = Radix4.encmap[b & 0xff];
+		b = encmap[b & 0xff];
 		int c = b & 0x3f;
 		if (radixFree) {
 			if (c == b) {
 				// still radix free
-				bufferByte(position++, Radix4.chars[ c ]);
+				bufferByte(position++, chars[ c ]);
 			} else {
 				// no longer radix free
 				flushBufferWithTerm();
@@ -65,12 +71,12 @@ abstract class Radix4OutputStream extends OutputStream {
 			// make room for radices
 			if (index == 0) position++;
 			// check if still radix free
-			bufferByte(position++, Radix4.chars[ c ]);
+			bufferByte(position++, chars[ c ]);
 			// append to the radix and increment counter
 			radix |= (b & 0xc0) >> ((++index) << 1);
 			// store the radix when full and reset counter
 			if (index == 3) {
-				bufferByte(position - 4, Radix4.chars[ radix ]);
+				bufferByte(position - 4, chars[ radix ]);
 				index = 0;
 				radix = 0;
 			}
@@ -92,7 +98,7 @@ abstract class Radix4OutputStream extends OutputStream {
 	public void close() throws IOException {
 		// write back the radix
 		if (index != 0) {
-			bufferByte(position - index - 1, Radix4.chars[ radix ]);
+			bufferByte(position - index - 1, chars[ radix ]);
 		}
 		if (radix4.terminated) {
 			// must be space in buffer here because write() never leaves it full

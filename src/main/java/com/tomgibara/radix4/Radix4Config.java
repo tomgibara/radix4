@@ -38,6 +38,7 @@ public final class Radix4Config implements Serializable {
 	
 	static final int NO_LINE_BREAK = 0;
 	
+	Radix4Mapping mapping;
 	int bufferSize;
 	int lineLength;
 	String lineBreak;
@@ -47,6 +48,7 @@ public final class Radix4Config implements Serializable {
 	char terminator;
 	
 	Radix4Config(boolean streaming) {
+		mapping = Radix4Mapping.DEFAULT;
 		bufferSize = DEFAULT_BUFFER_SIZE;
 		lineLength = NO_LINE_BREAK;
 		lineBreak = DEFAULT_LINE_BREAK;
@@ -57,6 +59,7 @@ public final class Radix4Config implements Serializable {
 	}
 	
 	Radix4Config(Radix4 radix4) {
+		mapping = radix4.mapping;
 		bufferSize = radix4.bufferSize;
 		lineLength = radix4.lineLength;
 		lineBreak = radix4.lineBreak;
@@ -64,6 +67,19 @@ public final class Radix4Config implements Serializable {
 		optimistic = radix4.optimistic;
 		terminated = radix4.terminated;
 		terminator = radix4.terminator;
+	}
+	
+	/**
+	 * Specifies the mapping to be used to generate the encoding.
+	 * 
+	 * @param mapping the bijective map used to generate the encoding
+	 * @return the modified configuration
+	 */
+	
+	public Radix4Config setMapping(Radix4Mapping mapping) {
+		if (mapping == null) throw new IllegalArgumentException("null mapping");
+		this.mapping = mapping;
+		return this;
 	}
 	
 	/**
@@ -148,7 +164,7 @@ public final class Radix4Config implements Serializable {
 		if (length == 0) throw new IllegalArgumentException("empty lineBreak");
 		// probably a short string - avoid intermediate object creation and iterate simply
 		for (int i = 0; i < length; i++) {
-			if ( !Radix4.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
+			if ( !mapping.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
 		}
 		this.lineBreak = lineBreak;
 		return this;
@@ -183,7 +199,7 @@ public final class Radix4Config implements Serializable {
 	 */
 	
 	public Radix4Config setTerminator(char terminator) {
-		if (!Radix4.isTerminator(terminator)) throw new IllegalArgumentException("invalid terminator");
+		if (!mapping.isValidTerminator(terminator)) throw new IllegalArgumentException("invalid terminator");
 		this.terminator = terminator;
 		return this;
 	}
@@ -217,12 +233,13 @@ public final class Radix4Config implements Serializable {
 		if (this.optimistic != that.optimistic) return false;
 		if (this.terminator != that.terminator) return false;
 		if (this.bufferSize != that.bufferSize) return false;
+		if (!this.mapping.equals(that.mapping)) return false;
 		return true;
 	}
 	
 	@Override
 	public int hashCode() {
-		int hash = 0;
+		int hash = mapping.hashCode();
 		hash += lineLength;
 		hash *= 31;
 		hash += bufferSize;
