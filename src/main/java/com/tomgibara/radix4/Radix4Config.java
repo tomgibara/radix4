@@ -17,6 +17,7 @@
 package com.tomgibara.radix4;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Allows the encoding and decoding of a {@link Radix4} to be configured.
@@ -35,6 +36,21 @@ public final class Radix4Config implements Serializable {
 	private static final int    DEFAULT_BUFFER_SIZE =   64;
 	private static final String DEFAULT_LINE_BREAK  = "\n";
 	private static final char   DEFAULT_TERMINATOR  =  '.';
+	static final char[] DEFAULT_WHITESPACE = { '\r', '\n', '\t', ' ' };
+
+	private static char[] checkedWhitespace(char[] whitespace) {
+		if (whitespace == null) throw new IllegalArgumentException("null whitespace");
+		if (whitespace == DEFAULT_WHITESPACE) return whitespace;
+		if (whitespace.length > 0) whitespace = whitespace.clone();
+		if (whitespace.length > 1) Arrays.sort(whitespace); // normalize order for equality tests
+		char p = 65535;
+		for (char w : whitespace) {
+			if (w > 127) throw new IllegalArgumentException("Non ASCII whitespace character: " + Radix4.charStr(w));
+			if (w == p) throw new IllegalArgumentException("Duplicate whitespace character: " + Radix4.charStr(w));
+			p = w;
+		}
+		return whitespace;
+	}
 	
 	static final int NO_LINE_BREAK = 0;
 	

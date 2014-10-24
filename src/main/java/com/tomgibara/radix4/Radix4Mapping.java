@@ -73,55 +73,41 @@ public final class Radix4Mapping implements Serializable {
 		0x7b, 0xf4, 0xf5, 0xf6, 0xf7, 0x3f, 0xf8, 0x3b, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, 0x7e,
 	};
 
-	private static final char[] DEFAULT_WHITESPACE = { '\r', '\n', '\t', ' ' };
-	
-	private static char[] checkedWhitespace(char[] whitespace) {
-		if (whitespace == null) throw new IllegalArgumentException("null whitespace");
-		if (whitespace == DEFAULT_WHITESPACE) return whitespace;
-		if (whitespace.length > 0) whitespace = whitespace.clone();
-		if (whitespace.length > 1) Arrays.sort(whitespace); // normalize order for equality tests
-		char p = 65535;
-		for (char w : whitespace) {
-			if (w > 127) throw new IllegalArgumentException("Non ASCII whitespace character: " + Radix4.charStr(w));
-			if (w == p) throw new IllegalArgumentException("Duplicate whitespace character: " + Radix4.charStr(w));
-			p = w;
-		}
-		return whitespace;
-	}
-	
 	public static Radix4Mapping DEFAULT = new Radix4Mapping();
+
+	// static methods
+	
+	private static int[] inverse(int[] map) {
+		int[] inv = new int[256];
+		for (int i = 0; i < 256; i++) {
+			inv[map[i]] = i;
+		}
+		return inv;
+	}
 	
 	// supplied fields
 
 	/** A lookup from a mapped byte to a character */
 	final byte[] chars;
-	/** A list of whitespace characters */
-	final char[] whitespace;
 	
 	// derived fields
 	
 	/** A lookup from an unmapped byte to a mapped byte */
 	final int[] decmap;
 	/** A lookup from a mapped byte to an unmapped byte */
-	final int[] encmap = new int[256];
+	final int[] encmap;
 
 	// constructors
 	
 	private Radix4Mapping() {
-		this.chars = DEFAULT_CHARS;
-		this.whitespace = DEFAULT_WHITESPACE;
-		this.decmap = DEFAULT_DECMAP;
-		derive();
+		chars = DEFAULT_CHARS;
+		decmap = DEFAULT_DECMAP;
+		encmap = inverse(DEFAULT_DECMAP);
 	}
 	
 	public Radix4Mapping(char[] chars) {
-		this(chars, DEFAULT_WHITESPACE);
-	}
-
-	public Radix4Mapping(char[] chars, char[] whitespace) {
 		if (chars == null) throw new IllegalArgumentException("null chars");
 		if (chars.length !=  64) throw new IllegalArgumentException("expected 64 chars");
-		whitespace = checkedWhitespace(whitespace);
 		
 		// build a char preserving bijection and byte map
 		int[] decmap = new int[256];
@@ -155,21 +141,13 @@ public final class Radix4Mapping implements Serializable {
 		
 		// assign values to fields
 		this.chars = bytes;
-		this.whitespace = whitespace;
 		this.decmap = decmap;
-		
-		// finally derive remaining lookups
-		derive();
+		this.encmap = inverse(decmap);
 	}
 
 	public Radix4Mapping(int[] decmap) {
-		this(decmap, DEFAULT_WHITESPACE);
-	}
-
-	public Radix4Mapping(int[] decmap, char[] whitespace) {
 		if (decmap == null) throw new IllegalArgumentException("null decmap");
 		if (decmap.length != 256) throw new IllegalArgumentException("expected 256 ints");
-		whitespace = checkedWhitespace(whitespace);
 		
 		// check valid values and for duplicates
 		{
@@ -189,35 +167,34 @@ public final class Radix4Mapping implements Serializable {
 		
 		// assign values to fields
 		this.chars = chars;
-		this.whitespace = whitespace;
 		this.decmap = decmap.clone();
-		
-		// finally derive remaining lookups
-		derive();
+		this.encmap = inverse(decmap);
 	}
 	
 	// public accessors
 	
 	/**
-	 * The character that will be treated as whitespace by this mapping.
-	 * 
-	 * @return an array characters treated as whitespace, possibly empty but
-	 *         never null
-	 */
-
-	public char[] getWhitespace() {
-		return whitespace.clone();
-	}
-	
-	/**
 	 * The bijection between unsigned byte values that serves to define this
-	 * mapping.
+	 * mapping. The inverse of the decoding map returned by
+	 * {@link #getEncodingMap}.
 	 * 
 	 * @return an array of length 256 containing every unsigned byte value
 	 */
 
 	public int[] getDecodingMap() {
 		return decmap.clone();
+	}
+
+	/**
+	 * The bijection between unsigned byte values that serves to define this
+	 * mapping. The inverse of the decoding map returned by
+	 * {@link #getDecodingMap}.
+	 * 
+	 * @return an array of length 256 containing every unsigned byte value
+	 */
+
+	public int[] getEncodingMap() {
+		return encmap.clone();
 	}
 
 	// package methods
@@ -232,16 +209,8 @@ public final class Radix4Mapping implements Serializable {
 
 	// private methods
 	
-	private void derive() {
-		
-		// populate encmap
-		for (int i = 0; i < 256; i++) {
-			encmap[decmap[i]] = i;
-		}
-	}
-	
 	private boolean isFixedByte(byte b) {
-		//TODO could optimize with a separate table?
+		//TODO could optimize with a simpler comparison
 		return (encmap[b & 0xff] & 0xc0) == 0;
 	}
 
@@ -249,7 +218,7 @@ public final class Radix4Mapping implements Serializable {
 	
 	@Override
 	public int hashCode() {
-		return Arrays.hashCode(decmap) ^ Arrays.hashCode(whitespace);
+		return Arrays.hashCode(decmap);
 	}
 	
 	@Override
@@ -258,7 +227,6 @@ public final class Radix4Mapping implements Serializable {
 		if (!(obj instanceof Radix4Mapping)) return false;
 		Radix4Mapping that = (Radix4Mapping) obj;
 		if (!Arrays.equals(this.decmap, that.decmap)) return false;
-		if (!Arrays.equals(this.whitespace, that.whitespace)) return false;
 		return true;
 	}
 
@@ -268,12 +236,8 @@ public final class Radix4Mapping implements Serializable {
 		for (int i = 0; i < 256; i++) {
 			sb.append( String.format("%#02x -> %#02x%n", i, decmap[i]) );
 		}
-		sb.append('{');
-		for (int i = 0; i < whitespace.length; i++) {
-			if (i != 0) sb.append(',');
-			sb.append(Radix4.charStr(whitespace[i]));
-		}
-		return sb.append('}').toString();
+		sb.setLength(sb.length() - 1);
+		return sb.toString();
 	}
 
 	// serialization
@@ -284,30 +248,22 @@ public final class Radix4Mapping implements Serializable {
 	
 	private static class Serial implements Serializable {
 		
-		private static final long serialVersionUID = 941866920920687388L;
+		private static final long serialVersionUID = 6965837775275859861L;
 
 		private final int[] decmap;
-		private final char[] whitespace;
 		
 		public Serial(Radix4Mapping mapping) {
 			if (mapping == DEFAULT) {
 				decmap = null;
-				whitespace = null;
 			} else {
 				decmap = mapping.decmap;
-				whitespace = mapping.whitespace == DEFAULT_WHITESPACE ? null : mapping.whitespace;
 			}
 		}
 		
 		private Object readResolve() throws ObjectStreamException {
 			// optimization for the common case:
 			// avoid creating lots of copies of default mapping during deserialization
-			if (decmap == null && whitespace == null) return DEFAULT;
-			// another minor optimization, whitespace is probably default
-			// just possible unsafe if default whitespace definition changed but:
-			// this is very unlikely and could be trapped with an alternative Serial
-			if (whitespace == null)  return new Radix4Mapping(decmap);
-			return new Radix4Mapping(decmap, whitespace);
+			return decmap == null ? DEFAULT : new Radix4Mapping(decmap);
 		}
 		
 	}

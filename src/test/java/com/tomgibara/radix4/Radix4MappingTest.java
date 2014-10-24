@@ -24,8 +24,6 @@ import junit.framework.TestCase;
 
 public class Radix4MappingTest extends TestCase {
 
-	private static final char[] NO_CHARS = new char[0];
-
 	private static final Random random = new Random(0);
 	
 	private static final char[] ASCII = new char[128];
@@ -55,7 +53,7 @@ public class Radix4MappingTest extends TestCase {
 	}
 	
 	static Radix4Mapping randomMapping(Random random) {
-		return new Radix4Mapping(randomChars(random), NO_CHARS);
+		return new Radix4Mapping(randomChars(random));
 	}
 	
 	public void testCharCons() {
@@ -87,7 +85,7 @@ public class Radix4MappingTest extends TestCase {
 	
 	private void testCharCons(char[] ascii) {
 		char[] chars = Arrays.copyOfRange(ascii, 0, 64);
-		Radix4Mapping mapping = new Radix4Mapping(chars, NO_CHARS);
+		Radix4Mapping mapping = new Radix4Mapping(chars);
 		for (int i = 0; i < 256; i++) {
 			int e = mapping.encmap[i];
 			int d = mapping.decmap[e];

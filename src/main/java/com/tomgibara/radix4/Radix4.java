@@ -83,6 +83,7 @@ public final class Radix4 implements Serializable {
 	final Radix4Mapping mapping;
 	final int bufferSize;
 	final int lineLength;
+	final char[] whitespace;
 	final String lineBreak;
 	final boolean streaming;
 	final boolean terminated;
@@ -101,6 +102,9 @@ public final class Radix4 implements Serializable {
 		mapping = config.mapping;
 		bufferSize = config.bufferSize;
 		lineLength = config.lineLength;
+		//TODO should obtain whitespace from config
+		//whitespace = config.whitespace;
+		whitespace = config.DEFAULT_WHITESPACE;
 		lineBreak  = config.lineBreak;
 		streaming  = config.streaming;
 		optimistic = config.optimistic;
@@ -116,7 +120,7 @@ public final class Radix4 implements Serializable {
 		for (byte i = 0; i < 64; i++) {
 			bytes[mapping.chars[i]] = i;
 		}
-		for (char c : mapping.whitespace) {
+		for (char c : whitespace) {
 			// also checks for whitespace collision
 			// bit untidy doing this outside the constructor, but it's more efficient to do it here
 			if (bytes[c] != -1) throw new IllegalArgumentException("Encoding characters contain whitespace: " + charStr(c));
@@ -135,6 +139,17 @@ public final class Radix4 implements Serializable {
 	
 	public Radix4Mapping getMapping() {
 		return mapping;
+	}
+	
+	/**
+	 * The character that will be treated as whitespace by this mapping.
+	 * 
+	 * @return an array characters treated as whitespace, possibly empty but
+	 *         never null
+	 */
+
+	public char[] getWhitespace() {
+		return whitespace.clone();
 	}
 	
 	/**
@@ -308,6 +323,7 @@ public final class Radix4 implements Serializable {
 	 * all inputs.
 	 */
 	
+	//TODO this definition doesn't cover decoding, so whitespace isn't included - should change?
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) return true;
