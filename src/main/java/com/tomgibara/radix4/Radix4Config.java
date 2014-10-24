@@ -162,10 +162,6 @@ public final class Radix4Config implements Serializable {
 		if (lineBreak == null) throw new IllegalArgumentException("null lineBreak");
 		int length = lineBreak.length();
 		if (length == 0) throw new IllegalArgumentException("empty lineBreak");
-		// probably a short string - avoid intermediate object creation and iterate simply
-		for (int i = 0; i < length; i++) {
-			if ( !mapping.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
-		}
 		this.lineBreak = lineBreak;
 		return this;
 	}
@@ -199,7 +195,7 @@ public final class Radix4Config implements Serializable {
 	 */
 	
 	public Radix4Config setTerminator(char terminator) {
-		if (!mapping.isValidTerminator(terminator)) throw new IllegalArgumentException("invalid terminator");
+		if (terminator > 127) throw new IllegalArgumentException("Non ASCII terminator");
 		this.terminator = terminator;
 		return this;
 	}
@@ -213,6 +209,12 @@ public final class Radix4Config implements Serializable {
 	 */
 
 	public Radix4 use() {
+		//TODO must validate that terminator is not used as an output character or as whitespace
+		//TODO must validate that linebreaks contain only whitespace
+		// probably a short string - avoid intermediate object creation and iterate simply
+//		for (int i = 0; i < length; i++) {
+//			if ( !mapping.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
+//		}
 		return new Radix4(this);
 	}
 	

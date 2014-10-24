@@ -75,10 +75,6 @@ public final class Radix4Mapping implements Serializable {
 
 	private static final char[] DEFAULT_WHITESPACE = { '\r', '\n', '\t', ' ' };
 	
-	private static String charStr(char c) {
-		return String.format("%#02x", (int) c);
-	}
-	
 	private static char[] checkedWhitespace(char[] whitespace) {
 		if (whitespace == null) throw new IllegalArgumentException("null whitespace");
 		if (whitespace == DEFAULT_WHITESPACE) return whitespace;
@@ -86,8 +82,8 @@ public final class Radix4Mapping implements Serializable {
 		if (whitespace.length > 1) Arrays.sort(whitespace); // normalize order for equality tests
 		char p = 65535;
 		for (char w : whitespace) {
-			if (w > 127) throw new IllegalArgumentException("Non ASCII whitespace character: " + charStr(w));
-			if (w == p) throw new IllegalArgumentException("Duplicate whitespace character: " + charStr(w));
+			if (w > 127) throw new IllegalArgumentException("Non ASCII whitespace character: " + Radix4.charStr(w));
+			if (w == p) throw new IllegalArgumentException("Duplicate whitespace character: " + Radix4.charStr(w));
 			p = w;
 		}
 		return whitespace;
@@ -108,8 +104,6 @@ public final class Radix4Mapping implements Serializable {
 	final int[] decmap;
 	/** A lookup from a mapped byte to an unmapped byte */
 	final int[] encmap = new int[256];
-	/** A lookup from an ASCII character to a mapped byte */
-	final byte[] bytes = new byte[256];
 
 	// constructors
 	
@@ -135,7 +129,7 @@ public final class Radix4Mapping implements Serializable {
 		// 1. first copy the characters into the lowest 64 indices and validate ASCII chars
 		for (int i = 0; i < 64; i++) {
 			char c = chars[i];
-			if (c > 127) throw new IllegalArgumentException("Non ASCII char: " + charStr(c));
+			if (c > 127) throw new IllegalArgumentException("Non ASCII char: " + Radix4.charStr(c));
 			bytes[i] = (byte) c;
 			decmap[i] = c;
 		}
@@ -147,7 +141,7 @@ public final class Radix4Mapping implements Serializable {
 			int index = 64;
 			for (int i = 0; i < 64; i++) {
 				char c = sorted[i];
-				if (c == prevC) throw new IllegalArgumentException("Duplicate char: " + charStr(c));
+				if (c == prevC) throw new IllegalArgumentException("Duplicate char: " + Radix4.charStr(c));
 				for (int j = prevC + 1; j < c; j++) {
 					decmap[index++] = j;
 				}
@@ -236,32 +230,9 @@ public final class Radix4Mapping implements Serializable {
 		return bytes.length;
 	}
 
-	int lookupByte(int c) {
-		return c >=0 && c < 256 ? bytes[c] : -1;
-	}
-	
-	boolean isWhitespace(int c) {
-		return c < 256 && bytes[c] == -2;
-	}
-	
-	boolean isValidTerminator(char c) {
-		return c < 256 && bytes[c] == -1;
-	}
-
 	// private methods
 	
 	private void derive() {
-		// populate bytes
-		Arrays.fill(bytes, (byte) -1);
-		for (byte i = 0; i < 64; i++) {
-			bytes[chars[i]] = i;
-		}
-		for (char c : whitespace) {
-			// also checks for whitespace collision
-			// bit untidy doing this outside the constructor, but it's more efficient to do it here
-			if (bytes[c] != -1) throw new IllegalArgumentException("Encoding characters contain whitespace: " + charStr(c));
-			bytes[c] = -2;
-		}
 		
 		// populate encmap
 		for (int i = 0; i < 256; i++) {
@@ -300,7 +271,7 @@ public final class Radix4Mapping implements Serializable {
 		sb.append('{');
 		for (int i = 0; i < whitespace.length; i++) {
 			if (i != 0) sb.append(',');
-			sb.append(charStr(whitespace[i]));
+			sb.append(Radix4.charStr(whitespace[i]));
 		}
 		return sb.append('}').toString();
 	}

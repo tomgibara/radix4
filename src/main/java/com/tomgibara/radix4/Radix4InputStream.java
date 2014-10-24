@@ -23,7 +23,6 @@ import java.io.Reader;
 abstract class Radix4InputStream extends InputStream {
 
 	private final Radix4 radix4;
-	private final Radix4Mapping mapping;
 	private final int[] decmap;
 	private final int termChar;
 	private boolean radixFree;
@@ -33,8 +32,7 @@ abstract class Radix4InputStream extends InputStream {
 	
 	Radix4InputStream(Radix4 radix4) {
 		this.radix4 = radix4;
-		mapping = radix4.mapping;
-		decmap = mapping.decmap;
+		decmap = radix4.mapping.decmap;
 		termChar = radix4.terminator;
 		radixFree = radix4.optimistic;
 	}
@@ -96,7 +94,7 @@ abstract class Radix4InputStream extends InputStream {
 			int c = readChar();
 			if (c == -1) return -1;
 			if (c == termChar) return -3;
-			int b = mapping.lookupByte(c);
+			int b = radix4.lookupByte(c);
 			if (b == -1) throw new IOException("invalid character");
 			if (b == -2) continue;
 			return b;

@@ -19,15 +19,13 @@ package com.tomgibara.radix4;
 abstract class Radix4BlockDecoder<T> {
 
 	private final Radix4 radix4;
-	private final Radix4Mapping mapping;
 	private final byte[] bytes;
 	private final int[] decmap;
 	
 	Radix4BlockDecoder(Radix4 radix4) {
 		this.radix4 = radix4;
-		mapping = radix4.mapping;
-		bytes = mapping.bytes;
-		decmap = mapping.decmap;
+		bytes = radix4.bytes;
+		decmap = radix4.mapping.decmap;
 	}
 	
 	public byte[] decode() {
@@ -72,7 +70,7 @@ abstract class Radix4BlockDecoder<T> {
 
 		// transfer radix free bytes
 		for (int i = 0; i < firstRadix; i++) {
-			int b = mapping.lookupByte(readByte(i) & 0xff) & 0xff;
+			int b = radix4.lookupByte(readByte(i) & 0xff) & 0xff;
 			if (b == -1) throw new IllegalArgumentException("invalid character at index " + i);
 			out[i] = (byte) decmap[b];
 		}
@@ -86,7 +84,7 @@ abstract class Radix4BlockDecoder<T> {
 			int radix = 0;
 			for (int i = 0; i < len; i++) {
 				if (++index == 3) {
-					radix = mapping.lookupByte(readByte(offset) & 0xff);
+					radix = radix4.lookupByte(readByte(offset) & 0xff);
 					if (radix < 0) throw new IllegalArgumentException("invalid character at index " + offset);
 					index = 0;
 					offset ++;
@@ -110,14 +108,13 @@ abstract class Radix4BlockDecoder<T> {
 		
 		BytesDecoder(Radix4 radix4, byte[] bytes, boolean stripWhitespace) {
 			super(radix4);
-			final Radix4Mapping mapping = radix4.mapping;
 			byte[] bs = null;
 			int j = 0;
 			int len = bytes.length;
 			if (stripWhitespace) {
 				for (int i = 0; i < len; i++) {
 					byte b = bytes[i];
-					if (mapping.isWhitespace(b & 0xff)) {
+					if (radix4.isWhitespace(b & 0xff)) {
 						if (bs == null) {
 							bs = new byte[len];
 							System.arraycopy(bytes, 0, bs, 0, i);
@@ -155,14 +152,12 @@ abstract class Radix4BlockDecoder<T> {
 		
 		CharsDecoder(Radix4 radix4, CharSequence chars, boolean stripWhitespace) {
 			super(radix4);
-			final Radix4Mapping mapping = radix4.mapping;
 			StringBuilder sb = null;
 			if (stripWhitespace) {
 				int len = chars.length();
 				for (int i = 0; i < len; i++) {
 					char c = chars.charAt(i);
-//PEV					if (Radix4.isWhitespace(c)) {
-					if (mapping.isWhitespace(c)) {
+					if (radix4.isWhitespace(c)) {
 						if (sb == null) {
 							sb = new StringBuilder(chars.subSequence(0, i));
 						}

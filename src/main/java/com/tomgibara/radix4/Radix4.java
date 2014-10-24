@@ -19,6 +19,7 @@ package com.tomgibara.radix4;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 /**
  * Defines a Radix4 encoding; various encodings are possible. The definitions
@@ -50,6 +51,13 @@ public final class Radix4 implements Serializable {
 	private static final Radix4 STREAM = new Radix4(new Radix4Config(true));
 	private static final Radix4 BLOCK = new Radix4(new Radix4Config(false));
 
+	// static methods
+	
+	//TODO move onto Util class?
+	static String charStr(char c) {
+		return String.format("%#02x", (int) c);
+	}
+	
 	/**
 	 * The standard Radix4 coding definition for streaming data.
 	 * 
@@ -81,6 +89,7 @@ public final class Radix4 implements Serializable {
 	final boolean optimistic;
 	final char terminator;
 	
+	final byte[] bytes = new byte[256];
 	final byte[] lineBreakBytes;
 	final byte terminatorByte;
 
@@ -101,6 +110,18 @@ public final class Radix4 implements Serializable {
 		// optimization - line break commonly left untouched - avoid creating many small byte arrays
 		lineBreakBytes = lineBreak.equals("\n") ? DEFAULT_LINE_BREAK_BYTES : lineBreak.getBytes(Radix4.ASCII);
 		terminatorByte = (byte) terminator;
+		
+		// populate bytes
+		Arrays.fill(bytes, (byte) -1);
+		for (byte i = 0; i < 64; i++) {
+			bytes[mapping.chars[i]] = i;
+		}
+		for (char c : mapping.whitespace) {
+			// also checks for whitespace collision
+			// bit untidy doing this outside the constructor, but it's more efficient to do it here
+			if (bytes[c] != -1) throw new IllegalArgumentException("Encoding characters contain whitespace: " + charStr(c));
+			bytes[c] = -2;
+		}
 	}
 	
 	// public accessors
@@ -326,6 +347,14 @@ public final class Radix4 implements Serializable {
 	
 	long extraLineBreakLength(long encodedLength) {
 		return encodedLength == 0L ? 0L : ((encodedLength - 1) / lineLength) * lineBreak.length();
+	}
+	
+	int lookupByte(int c) {
+		return c >=0 && c < 256 ? bytes[c] : -1;
+	}
+	
+	boolean isWhitespace(int c) {
+		return c < 256 && bytes[c] == -2;
 	}
 	
 	// private helper methods

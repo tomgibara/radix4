@@ -38,11 +38,9 @@ import java.io.Writer;
 class Radix4Blocks implements Radix4Coding {
 
 	private final Radix4 radix4;
-	private final Radix4Mapping mapping;
 	
 	Radix4Blocks(Radix4 radix4) {
 		this.radix4 = radix4;
-		this.mapping = radix4.mapping;
 	}
 
 	@Override
@@ -97,7 +95,7 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int b = in.read();
 						if (b == -1) throw new IOException("Unexpected end of stream");
-						if (mapping.isWhitespace(b)) continue; // ignore whitespace
+						if (radix4.isWhitespace(b)) continue; // ignore whitespace
 						out.write(b);
 						if (b == term) {
 							if (seekingFirstRadix) {
@@ -123,7 +121,7 @@ class Radix4Blocks implements Radix4Coding {
 			private int stripWhitespace(byte[] buffer, int length) {
 				int j = 0;
 				for (int i = 0; i < length; i++) {
-						if (!mapping.isWhitespace(buffer[i] & 0xff)) {
+						if (!radix4.isWhitespace(buffer[i] & 0xff)) {
 						if (i != j) buffer[j] = buffer[i];
 						j++;
 					}
@@ -146,7 +144,7 @@ class Radix4Blocks implements Radix4Coding {
 					while (true) {
 						int c = reader.read();
 						if (c == -1) throw new IOException("Unexpected end of stream");
-						if (mapping.isWhitespace(c)) continue; // ignore whitespace
+						if (radix4.isWhitespace(c)) continue; // ignore whitespace
 						sb.append(c);
 						if (c == term) {
 							if (seekingFirstRadix) {
@@ -171,7 +169,7 @@ class Radix4Blocks implements Radix4Coding {
 			private int stripWhitespace(char[] buffer, int length) {
 				int j = 0;
 				for (int i = 0; i < length; i++) {
-					if (!mapping.isWhitespace(buffer[i])) {
+					if (!radix4.isWhitespace(buffer[i])) {
 						if (i != j) buffer[j] = buffer[i];
 						j++;
 					}
