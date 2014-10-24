@@ -195,23 +195,6 @@ public final class Radix4Mapping implements Serializable {
 		return encmap.clone();
 	}
 
-	// package methods
-	
-	int computeRadixFreeLength(byte[] bytes) {
-		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		for (int i = 0; i < bytes.length; i++) {
-			if (!isFixedByte(bytes[i])) return i;
-		}
-		return bytes.length;
-	}
-
-	// private methods
-	
-	private boolean isFixedByte(byte b) {
-		//TODO could optimize with a simpler comparison
-		return (encmap[b & 0xff] & 0xc0) == 0;
-	}
-
 	// object methods
 	
 	@Override

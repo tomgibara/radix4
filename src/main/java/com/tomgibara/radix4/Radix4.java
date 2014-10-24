@@ -263,7 +263,7 @@ public final class Radix4 implements Serializable {
 
 	public long computeEncodedLength(byte[] bytes) {
 		if (bytes == null) throw new IllegalArgumentException("null bytes");
-		long radixFreeLength = optimistic ? mapping.computeRadixFreeLength(bytes) : 0L;
+		long radixFreeLength = optimistic ? computeRadixFreeLength(bytes) : 0L;
 		return computeEncodedLength(bytes.length, radixFreeLength);
 	}
 
@@ -373,6 +373,15 @@ public final class Radix4 implements Serializable {
 	
 	// private helper methods
 	
+	private int computeRadixFreeLength(byte[] bytes) {
+		int[] encmap = mapping.encmap;
+		for (int i = 0; i < bytes.length; i++) {
+			// if the encoded value is not in the 0-63 range we've found a byte with a radix
+			if (encmap[bytes[i] & 0xff] >= 64) return i;
+		}
+		return bytes.length;
+	}
+
 	// serialization
 	
 	private Object writeReplace() throws ObjectStreamException {
