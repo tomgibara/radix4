@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 import com.tomgibara.radix4.Radix4;
 import com.tomgibara.radix4.Radix4Coding;
-import com.tomgibara.radix4.Radix4Config;
 
 
 import junit.framework.TestCase;
