@@ -31,23 +31,26 @@ import java.util.Arrays;
 
 public final class Radix4Config implements Serializable {
 
-	private static final long serialVersionUID = 3743746958617647872L;
+	private static final long serialVersionUID = 3503716988753084708L;
 
 	private static final int    DEFAULT_BUFFER_SIZE =   64;
 	private static final String DEFAULT_LINE_BREAK  = "\n";
 	private static final char   DEFAULT_TERMINATOR  =  '.';
-	static final char[] DEFAULT_WHITESPACE = { '\r', '\n', '\t', ' ' };
+	private static final char[] DEFAULT_WHITESPACE = { '\r', '\n', '\t', ' ' };
 
-	private static char[] checkedWhitespace(char[] whitespace) {
+	private static char[] safeWhitespace(char[] whitespace) {
 		if (whitespace == null) throw new IllegalArgumentException("null whitespace");
 		if (whitespace == DEFAULT_WHITESPACE) return whitespace;
-		if (whitespace.length > 0) whitespace = whitespace.clone();
-		if (whitespace.length > 1) Arrays.sort(whitespace); // normalize order for equality tests
-		char p = 65535;
-		for (char w : whitespace) {
-			if (w > 127) throw new IllegalArgumentException("Non ASCII whitespace character: " + Radix4.charStr(w));
-			if (w == p) throw new IllegalArgumentException("Duplicate whitespace character: " + Radix4.charStr(w));
-			p = w;
+		int length = whitespace.length;
+		if (length > 0) {
+			whitespace = whitespace.clone();
+			if (length > 1) {
+				Arrays.sort(whitespace); // normalize order for equality tests
+				if (whitespace[length - 1] > 127) throw new IllegalArgumentException("Non ASCII whitespace character.");
+				for (int i = 1; i < length; i++) {
+					if (whitespace[i] == whitespace[i - 1]) throw new IllegalArgumentException("Duplicate whitespace character.");
+				}
+			}
 		}
 		return whitespace;
 	}
@@ -57,6 +60,7 @@ public final class Radix4Config implements Serializable {
 	Radix4Mapping mapping;
 	int bufferSize;
 	int lineLength;
+	char[] whitespace = DEFAULT_WHITESPACE;
 	String lineBreak;
 	boolean streaming;
 	boolean terminated;
@@ -78,6 +82,7 @@ public final class Radix4Config implements Serializable {
 		mapping = radix4.mapping;
 		bufferSize = radix4.bufferSize;
 		lineLength = radix4.lineLength;
+		whitespace = radix4.whitespace;
 		lineBreak = radix4.lineBreak;
 		streaming = radix4.streaming;
 		optimistic = radix4.optimistic;
@@ -141,6 +146,21 @@ public final class Radix4Config implements Serializable {
 
 	public Radix4Config setOptimistic(boolean optimistic) {
 		this.optimistic = optimistic;
+		return this;
+	}
+	
+	/**
+	 * The characters which will be treated as whitespace when decoding input.
+	 * 
+	 * @param whitespace
+	 *            an array of whitespace characters
+	 * @throws IllegalArgumentException
+	 *             if the array contains duplicates or non-ASCII characters.
+	 * @return the modified configuration
+	 */
+
+	public Radix4Config setWhitespace(char[] whitespace) {
+		this.whitespace = safeWhitespace(whitespace);
 		return this;
 	}
 	
@@ -225,12 +245,26 @@ public final class Radix4Config implements Serializable {
 	 */
 
 	public Radix4 use() {
-		//TODO must validate that terminator is not used as an output character or as whitespace
-		//TODO must validate that linebreaks contain only whitespace
-		// probably a short string - avoid intermediate object creation and iterate simply
-//		for (int i = 0; i < length; i++) {
-//			if ( !mapping.isWhitespace(lineBreak.charAt(i)) ) throw new IllegalArgumentException("invalid lineBreak");
-//		}
+		// check terminator is not whitespace
+		for (char c : whitespace) {
+			if (terminator == c) throw new IllegalStateException("Terminator character is a whitespace character: " + Radix4.charStr(terminator));
+		}
+		
+		// check terminator is not used as an output character
+		byte tb = (byte) terminator;
+		for (byte b : mapping.chars) {
+			if (tb == b) throw new IllegalStateException("Terminator character is an encoding character: " + Radix4.charStr(terminator));
+		}
+
+		// check linebreak only contains whitespace
+		for (int i = 0; i < lineBreak.length(); i++) {
+			char c = lineBreak.charAt(i);
+			if (Arrays.binarySearch(whitespace, c) < 0) {
+				throw new IllegalStateException("Linebreak contains non-whitespace character: " + Radix4.charStr(c));
+			}
+		}
+		
+		// all good, let's produce a Radix4 instance
 		return new Radix4(this);
 	}
 	

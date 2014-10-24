@@ -102,9 +102,7 @@ public final class Radix4 implements Serializable {
 		mapping = config.mapping;
 		bufferSize = config.bufferSize;
 		lineLength = config.lineLength;
-		//TODO should obtain whitespace from config
-		//whitespace = config.whitespace;
-		whitespace = config.DEFAULT_WHITESPACE;
+		whitespace = config.whitespace;
 		lineBreak  = config.lineBreak;
 		streaming  = config.streaming;
 		optimistic = config.optimistic;

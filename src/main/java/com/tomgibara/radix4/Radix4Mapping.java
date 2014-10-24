@@ -31,8 +31,6 @@ import java.util.Arrays;
  * 
  */
 
-//TODO consider splitting whitespace away from this class - should be a config parameter?
-//note: implication is that bytes would move to Radix4 class
 public final class Radix4Mapping implements Serializable {
 
 	private static final byte[] DEFAULT_CHARS = {
