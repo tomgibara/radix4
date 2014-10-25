@@ -4,7 +4,7 @@
 
   <groupId>com.tomgibara.radix4</groupId>
   <artifactId>radix4</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <parent>
@@ -20,7 +20,7 @@
   <name>Radix4</name>
   <description>A binary-to-text encoding</description>
   <inceptionYear>2014</inceptionYear>
-  <url>http://code.google.com/p/tomgibara/</url>
+  <url>https://github.com/tomgibara/radix4/</url>
 
   <issueManagement>
     <system>Github</system>
@@ -33,10 +33,6 @@
       <name>Tom Gibara</name>
       <email>me@tomgibara.com</email>
       <url>http://www.tomgibara.com</url>
-      <roles>
-        <role>Administrator</role>
-        <role>Developer</role>
-      </roles>
       <timezone>0</timezone>
     </developer>
   </developers>
